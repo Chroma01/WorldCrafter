@@ -14,7 +14,8 @@ class ChunkCancelled(Exception):
 
 
 class WorldCrafterEngine:
-    def __init__(self, device="cuda:0"):
+    def __init__(self, device="cuda:0", enable_compile=None):
+        import os
         import torch
         from worldcrafter import WorldCrafter
 
@@ -25,7 +26,8 @@ class WorldCrafterEngine:
             model_type="fast",
             device=self.device,
             attention_backend="native",
-            enable_compile=True,
+            enable_compile=(os.environ.get("WORLDCRAFTER_DEMO_COMPILE", "1") == "1"
+                            if enable_compile is None else enable_compile),
         )
         self.pipe = self.model.pipeline
         self.repencoder = self.model.memory_provider.runtime
@@ -33,7 +35,8 @@ class WorldCrafterEngine:
         self.devices = [self.device.index]
         self.session = None
         (DATA / "reports").mkdir(parents=True, exist_ok=True)
-        report_name = "model_setup.json" if self.device.index == 0 else f"model_setup_gpu{self.device.index}.json"
+        rank = int(os.environ.get("RANK", "0")) if os.environ.get("WORLDCRAFTER_DEMO_BACKEND") == "context" else self.device.index
+        report_name = "model_setup.json" if rank == 0 else f"model_setup_gpu{rank}.json"
         (DATA / "reports" / report_name).write_text(
             json.dumps(self.info, indent=2) + "\n"
         )

@@ -19,6 +19,9 @@ def create_engine(mock=False):
     if mock:
         return MockEngine()
     import os
+    if os.environ.get("WORLDCRAFTER_DEMO_BACKEND") == "context":
+        from .multigpu.serving import ContextParallelEngine
+        return ContextParallelEngine()
     if os.environ.get("WORLDCRAFTER_DEMO_GPUS") == "2":
         from .parallel import ParallelEngine
         return ParallelEngine()

@@ -48,6 +48,8 @@ def health():
         compile_enabled=m.model_info.get("compile_enabled", False),
         gpu_mode=m.model_info.get("gpu_mode", "single"),
         gpu_count=m.model_info.get("gpu_count", 1),
+        parallel_implementation=m.model_info.get("parallel_implementation"),
+        vae_decode=m.model_info.get("vae_decode", {"mode": "single", "gpu_count": 1}),
     )
 
 

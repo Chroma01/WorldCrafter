@@ -1,0 +1,13 @@
+{
+  "release": "eight_gpu_20261008T085026Z",
+  "source_uri": "s3://arcwm-code-us-west-2/kunhaokhliu/Helios/handoffs/eight_gpu_20261008T085026Z/",
+  "archive_sha256": "537ed9058941b15563af7c8b70120dddf288c5c3b7de1f990384beeb783667a7",
+  "source_files": {
+    "project/experiments/best_pyramid_multigpu/balanced.py": "3f2e5e5b727cf633e89f6ec22324017e023a5335a8b61a41a63bfb2df10b72f0",
+    "project/experiments/best_pyramid_multigpu/hybrid_attention.py": "808e88babe417210fd2f95f6e2082821f28bd5e040fc891b8f502b88cdedc14a",
+    "project/experiments/best_pyramid_multigpu/kv8_fusion.py": "83f2cbf3f527964ca62067c2a1de5c107d4d08889a8504513a1727bec46bc95b",
+    "project/demo/parallel_vae.py": "47aabb5ab5d59f7771f86f556614fdb7399d7b3b50458014e643a70d0bf482a7",
+    "project/experiments/best_pyramid_multigpu/distributed.py": "44bc66e650c19110d820238b3587da03392eee75a73a08e9896ca43d3ffe7483",
+    "project/demo/control_channel.py": "c2d3d338841f364e5eb43fdcd79057406bc1d95059fa94e77c2bf3ea10734964"
+  }
+}
