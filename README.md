@@ -171,18 +171,19 @@ Compilation is **off by default**. Add `--enable-compile` to enable it; the firs
 ## 🎮 Interactive Demo
 
 Explore a scene from an image with keyboard camera controls, powered by
-WorldCrafter-Fast. Run from the repository root with your environment activated:
+WorldCrafter-Fast.
+Run from the repository root with your environment activated:
 
 ```bash
 python -m demo --model-path weights/WorldCrafter-Fast
 ```
 
 Open `http://localhost:8080` in your browser. Compilation is enabled by
-default, so the first generation takes longer. Add `--devices 0,1` to
-run on two GPUs.
+default, so the first generation takes longer.
 
-See the [demo guide](demo/README.md) for camera controls, automatic
-prompt generation, and deployment options.
+One GPU is used by default; use `--devices` for multi-GPU inference.
+See the [demo guide](demo/README.md) for multi-GPU setup, camera controls,
+and deployment options.
 
 ## 📝 Citation
 
