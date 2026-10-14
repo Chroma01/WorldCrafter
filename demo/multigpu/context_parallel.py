@@ -219,6 +219,9 @@ def install(pipe, fusion='rope', compile_blocks=True):
         layout.optimized = optimized
         layout.geometry = GeometryCache()
         pipe.context_geometry_caches.append(layout.geometry)
+        # Chunk indices and cache ownership are Python control state. Keeping
+        # this hook eager prevents a new compiled guard for every video chunk.
+        @torch.compiler.disable
         def split(module, args, layout=layout, index=index):
             layout.configure(args[0].shape[1], args[4])
             chunk, stage, _, _ = pipe.stage_forward_context
