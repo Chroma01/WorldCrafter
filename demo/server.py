@@ -8,7 +8,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 from .config import ROOT, DATA, EXAMPLES, DEFAULT_PRESET, presets, ROUTE
-from .media import image_input, concat_recording
+from .media import image_input, concat_recording, encoder_settings
 from .service import Manager
 
 
@@ -50,6 +50,7 @@ def health():
         gpu_count=m.model_info.get("gpu_count", 1),
         parallel_implementation=m.model_info.get("parallel_implementation"),
         vae_decode=m.model_info.get("vae_decode", {"mode": "single", "gpu_count": 1}),
+        encoder=encoder_settings(),
     )
 
 

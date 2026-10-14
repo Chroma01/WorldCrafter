@@ -75,8 +75,8 @@ class CameraTests(unittest.TestCase):
         ]:
             with self.assertRaises(ValueError):
                 action.normalized()
-        self.assertEqual(Action(yaw=100).normalized().yaw, 30)
-        self.assertEqual(Action(pitch=-100).normalized().pitch, -30)
+        self.assertEqual(Action(yaw=100).normalized().yaw, 45)
+        self.assertEqual(Action(pitch=-100).normalized().pitch, -45)
         with self.assertRaises(ValueError):
             Action(up=float("nan")).normalized()
 
@@ -94,30 +94,30 @@ class ControlTests(unittest.TestCase):
             "d": ("right", 1),
             "q": ("up", 1),
             "e": ("up", -1),
-            "ArrowLeft": ("yaw", -15),
-            "ArrowRight": ("yaw", 15),
-            "ArrowUp": ("pitch", 15),
-            "ArrowDown": ("pitch", -15),
+            "ArrowLeft": ("yaw", -30),
+            "ArrowRight": ("yaw", 30),
+            "ArrowUp": ("pitch", 30),
+            "ArrowDown": ("pitch", -30),
         }
         for key, (axis, value) in expected.items():
             c = ControlBuffer()
             self.key(c, key)
-            self.assertEqual(c.consume(), Action(**{axis: value}))
+            self.assertEqual(c.consume(), Action(**{axis: value}, speed=2))
 
     def test_tap_hold_release_and_blur(self):
         c = ControlBuffer()
         self.key(c, "w")
         self.key(c, "w", False)
         self.assertEqual(c.consume().forward, 1)
-        self.assertEqual(c.consume(), Action())
+        self.assertEqual(c.consume(), Action(speed=2))
         self.key(c, "a")
         self.assertEqual(c.consume().right, -1)
         self.assertEqual(c.consume().right, -1)
         self.key(c, "a", False)
-        self.assertEqual(c.consume(), Action())
+        self.assertEqual(c.consume(), Action(speed=2))
         self.key(c, "q")
         c.update(dict(type="blur"))
-        self.assertEqual(c.consume(), Action())
+        self.assertEqual(c.consume(), Action(speed=2))
 
     def test_latest_tap_replaces_every_prior_category(self):
         c = ControlBuffer()
@@ -125,10 +125,10 @@ class ControlTests(unittest.TestCase):
             self.key(c, key)
             self.key(c, key, False)
             axis, sign = c.KEYS[key.lower()]
-            value = sign * 15 if axis in ("yaw", "pitch") else sign
-            self.assertEqual(c.peek(), Action(**{axis: value}))
-        self.assertEqual(c.consume(), Action(pitch=-15))
-        self.assertEqual(c.consume(), Action())
+            value = sign * 30 if axis in ("yaw", "pitch") else sign
+            self.assertEqual(c.peek(), Action(**{axis: value}, speed=2))
+        self.assertEqual(c.consume(), Action(pitch=-30, speed=2))
+        self.assertEqual(c.consume(), Action(speed=2))
 
     def test_held_keys_do_not_combine_repeat_or_resurrect(self):
         c = ControlBuffer()
@@ -137,30 +137,30 @@ class ControlTests(unittest.TestCase):
         self.key(c, "ArrowRight")
         self.key(c, "w")  # OS repeat of overridden key cannot steal priority.
         self.key(c, "q", False)  # Release of an old key cannot clear the latest.
-        self.assertEqual(c.consume(), Action(yaw=15))
-        self.assertEqual(c.consume(), Action(yaw=15))
+        self.assertEqual(c.consume(), Action(yaw=30, speed=2))
+        self.assertEqual(c.consume(), Action(yaw=30, speed=2))
         self.key(c, "ArrowRight", False)
-        self.assertEqual(c.consume(), Action())  # W is still held, but overridden.
+        self.assertEqual(c.consume(), Action(speed=2))  # W is still held, but overridden.
         self.key(c, "w", False)
         self.key(c, "w")  # A fresh physical press can select W again.
-        self.assertEqual(c.consume(), Action(forward=1))
+        self.assertEqual(c.consume(), Action(forward=1, speed=2))
 
     def test_settings_edit_pending_but_never_consumed_action(self):
         c = ControlBuffer()
         c.update(dict(type="speed", value=1.5))
-        c.update(dict(type="vertical_speed", value=0.6))
+        c.update(dict(type="vertical_speed", value=1.6))
         self.key(c, "w")
         move = c.consume()
         self.key(c, "q")
-        self.assertEqual(c.peek(), Action(up=1, speed=0.6))
-        c.update(dict(type="vertical_speed", value=0.8))
+        self.assertEqual(c.peek(), Action(up=1, speed=1.6))
+        c.update(dict(type="vertical_speed", value=1.8))
         rise = c.consume()
         self.key(c, "ArrowUp")
         c.update(dict(type="rotation_angle", value=12))
         rotate = c.consume()
         c.update(dict(type="rotation_angle", value=20))
         self.assertEqual(move, Action(forward=1, speed=1.5))
-        self.assertEqual(rise, Action(up=1, speed=0.8))
+        self.assertEqual(rise, Action(up=1, speed=1.8))
         self.assertEqual(rotate, Action(pitch=12, speed=1.5))
         self.assertEqual(c.peek(), Action(pitch=20, speed=1.5))
 
@@ -170,7 +170,7 @@ class ControlTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 c.update(dict(type=kind, value=float("nan")))
             c.update(dict(type=kind, value=100))
-            self.assertEqual(getattr(c, kind), 30 if kind == "rotation_angle" else 5)
+            self.assertEqual(getattr(c, kind), 45 if kind == "rotation_angle" else 5)
         with self.assertRaises(ValueError):
             c.update(dict(type="mouse", yaw=1, pitch=2))
 

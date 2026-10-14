@@ -53,12 +53,16 @@ class ContextParallelEngine(WorldCrafterEngine):
         configure(self)
         self.coordinator = Coordinator(self, channel())
         self.parallel_vae = None
-        if os.environ.get('WORLDCRAFTER_VAE_MODE', 'single') == 'pipeline8':
-            from .parallel_vae import EightGPUDecoder
-            self.parallel_vae = EightGPUDecoder(self.pipe.vae)
+        vae_mode = os.environ.get('WORLDCRAFTER_VAE_MODE', 'single')
+        if vae_mode.startswith('pipeline'):
+            from .parallel_vae import ParallelDecoder
+            self.parallel_vae = ParallelDecoder(
+                self.pipe.vae, dist.get_world_size(),
+                optimized=os.environ.get('WORLDCRAFTER_DEMO_OPTIMIZED', '0') == '1',
+                compile_stages=os.environ.get('WORLDCRAFTER_DEMO_COMPILE', '1') == '1')
             self.parallel_vae.warmup(self.pipe.vae.decode)
             self.pipe.vae.decode = self.parallel_vae.decode
-            self.devices = list(range(8))
+            self.devices = list(range(dist.get_world_size()))
             self.info['vae_decode'] = self.parallel_vae.info
         else:
             self.info['vae_decode'] = dict(mode='single', gpu_count=1, warmed=True, compute_dtype='float32')

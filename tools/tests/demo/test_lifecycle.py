@@ -168,7 +168,7 @@ class LifecycleTests(unittest.IsolatedAsyncioTestCase):
         for key in ("a", "q", "e"):
             self.cmd(s, "key", key=key, down=True)
             self.cmd(s, "key", key=key, down=False)
-        self.cmd(s, "vertical_speed", value=0.6)
+        self.cmd(s, "vertical_speed", value=1.6)
         self.cmd(s, "rotation_angle", value=20)
         self.assertEqual(s.active, active)
         self.cmd(s, "pause")
@@ -176,7 +176,7 @@ class LifecycleTests(unittest.IsolatedAsyncioTestCase):
         self.cmd(s, "resume")
         await self.until(lambda: s.active is not None)
         self.assertEqual(s.active["up"], -1)
-        self.assertEqual(s.active["speed"], 0.6)
+        self.assertEqual(s.active["speed"], 1.6)
         self.assertEqual(s.active["yaw"], 0)
         self.assertEqual(s.active["right"], 0)
         self.cmd(s, "pause")

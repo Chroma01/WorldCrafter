@@ -382,9 +382,10 @@ class Manager:
                     encode_start = time.perf_counter()
                     path = directory / f"chunk_{index:03d}.mp4"
                     pending_path = directory / f"pending_{index:03d}.mp4"
-                    encode_chunk(result.pop("frames"), pending_path)
+                    encoding = encode_chunk(result.pop("frames"), pending_path)
                     result.update(
                         encode_s=time.perf_counter() - encode_start,
+                        encoder=encoding,
                         generation_fps=33 / result["generation_s"],
                         action=action.json(),
                         accepted_at=accepted_at,

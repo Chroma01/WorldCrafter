@@ -66,9 +66,10 @@ def main():
     parser.add_argument("--mock", action="store_true")
     parser.add_argument("--devices", default="0", help="One, two, four or eight visible GPU indices")
     parser.add_argument("--backend", choices=("auto", "query", "context"), default="auto")
-    parser.add_argument("--vae-mode", choices=("auto", "single", "pipeline8"), default="auto")
+    parser.add_argument("--vae-mode", choices=("auto", "single", "pipeline4", "pipeline8"), default="auto")
+    parser.add_argument("--performance-profile", choices=("auto", "native", "throughput"), default="auto")
     parser.add_argument("--kv-fusion", choices=("off", "rope"), default="rope")
-    parser.add_argument("--no-compile", action="store_true", help="Disable DiT compilation for validation")
+    parser.add_argument("--no-compile", action="store_true", help="Disable DiT and VAE compilation for validation")
     args = parser.parse_args()
     devices = args.devices.split(",")
     if len(devices) not in (1, 2, 4, 8) or len(set(devices)) != len(devices) or not all(d.isdigit() for d in devices):
@@ -81,9 +82,12 @@ def main():
     if backend == "context" and len(devices) not in (2, 4, 8):
         parser.error("Context parallelism requires 2, 4 or 8 GPUs")
     vae = args.vae_mode
-    if vae == "auto": vae = "pipeline8" if len(devices) == 8 else "single"
-    if vae == "pipeline8" and (len(devices) != 8 or backend != "context"):
-        parser.error("pipeline8 VAE requires eight GPUs and the context backend")
+    if vae == "auto": vae = f"pipeline{len(devices)}" if len(devices) >= 4 else "single"
+    if vae.startswith("pipeline") and (int(vae[-1]) != len(devices) or backend != "context"):
+        parser.error("VAE pipeline size must match the GPU count and requires the context backend")
+    optimized = args.performance_profile == "throughput" or (args.performance_profile == "auto" and len(devices) >= 4)
+    if optimized and (len(devices) not in (4, 8) or backend != "context"):
+        parser.error("The throughput profile requires four or eight context-parallel GPUs")
     if args.mock and backend == "context":
         parser.error("Context parallelism requires actual GPUs; use single-device mock for UI tests")
     visible = os.environ.get("CUDA_VISIBLE_DEVICES")
@@ -102,6 +106,7 @@ def main():
         WORLDCRAFTER_VAE_MODE=vae,
         WORLDCRAFTER_KV_FUSION=args.kv_fusion,
         WORLDCRAFTER_DEMO_COMPILE=str(int(not args.no_compile)),
+        WORLDCRAFTER_DEMO_OPTIMIZED=str(int(optimized)),
     )
     if backend == "context":
         import sys

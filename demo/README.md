@@ -26,7 +26,7 @@ indices with `--devices`; one GPU is the default.
 | --- | --- | --- |
 | `0` | Single GPU | Single GPU |
 | `0,1` | Query parallel | Single GPU |
-| `0,1,2,3` | Context parallel | Single GPU |
+| `0,1,2,3` | Context parallel | Four-GPU pipeline |
 | `0,1,2,3,4,5,6,7` | Context parallel | Eight-GPU pipeline |
 
 Run from the repository root with the environment activated and weights ready:
@@ -59,11 +59,13 @@ each selected GPU. Context parallelism uses FlashAttention 3 and Triton kernels;
 use the project's pinned dependencies and compatible GPUs with working NCCL
 communication.
 
-The eight-GPU VAE pipeline distributes decoding layers across the selected
-GPUs and preserves causal state between chunks. Camera computations and VAE
-decoding use FP32. Sampling steps, model routing, camera controls and the UI are
-shared across modes; distributed floating-point operations can produce small
-numerical differences.
+Four- and eight-GPU modes enable the throughput profile by default: BF16 camera
+attention and K/V transport, cached camera geometry, compiled BF16 VAE decoding,
+and low-latency video encoding. VAE weights remain FP32; decoding layers are
+distributed across the selected GPUs with complete causal state within each
+chunk. Geometry caches are scoped to a chunk and pyramid stage and cleared on
+session reset. These modes keep the six-step sampling schedule, model routing,
+camera controls and interface. BF16 and compilation can change numerical output.
 
 ### Backend options
 
@@ -72,17 +74,22 @@ numerical differences.
 - `--backend context` supports two, four or eight GPUs. To select it explicitly
   on two GPUs, use `python -m demo --devices 0,1 --backend context`.
 - `--vae-mode auto` selects the VAE mode from the table. `single` keeps decoding
-  on the primary GPU; `pipeline8` requires eight GPUs and the context backend.
+  on the primary GPU; `pipeline4` and `pipeline8` require the matching GPU count
+  and the context backend.
+- `--performance-profile auto` enables the throughput profile on four/eight GPUs.
+  `native` uses FP32 camera/VAE operations and standard video encoding;
+  `throughput` explicitly selects the four/eight-GPU optimizations.
 - `--kv-fusion rope` enables fused RoPE and KV packing for the context backend;
   `off` provides an unfused comparison path.
-- `--no-compile` disables Transformer compilation for troubleshooting. The
-  eight-GPU VAE pipeline uses native FP32 operations independently of this flag.
+- `--no-compile` disables Transformer and VAE-stage compilation for troubleshooting.
 
-Startup loads the models. The eight-GPU VAE also warms up and checks its output
-against the original decoder before becoming ready. Transformer compilation
+Startup loads the models. VAE pipelines warm up, check eager partition semantics,
+and check compiled output drift and repeatability before becoming ready. Transformer compilation
 can add work on the first generation or when tensor shapes change. Wait for
 `/api/health` to report `ready: true` and `error: null`; it also reports the
-actual `gpu_count`, `gpu_mode` and `vae_decode` configuration. Initialization
+actual `gpu_count`, `gpu_mode`, `parallel_implementation`, `vae_decode` and `encoder`
+configuration. Chunk records include encoding time and per-rank geometry-cache
+statistics. Generation FPS excludes video encoding and network time. Initialization
 errors are reported instead of silently selecting a different backend.
 
 Workers use a private CPU control channel while waiting for user input and

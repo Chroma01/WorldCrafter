@@ -1,5 +1,6 @@
 import hashlib
 import io
+import os
 from pathlib import Path
 import subprocess
 import numpy as np
@@ -18,12 +19,20 @@ def digest(array):
     return hashlib.sha256(np.ascontiguousarray(array).tobytes()).hexdigest()
 
 
+def encoder_settings():
+    if os.environ.get('WORLDCRAFTER_DEMO_OPTIMIZED', '0') == '1':
+        return dict(profile='low_latency', preset='veryfast', crf=18, threads=4, filter_threads=2)
+    return dict(profile='native', preset='fast', crf=20, threads=2, filter_threads=None)
+
+
 def encode_chunk(frames, path):
     path = Path(path)
     temp = path.with_suffix(".part.mp4")
     frames = np.asarray(frames, dtype=np.uint8)
     if frames.shape != (33, 384, 640, 3):
         raise ValueError(f"Expected 33 RGB frames at 640x384, got {frames.shape}")
+    settings = encoder_settings()
+    filter_args = [] if settings['filter_threads'] is None else ['-filter_threads', str(settings['filter_threads'])]
     subprocess.run(
         [
             "ffmpeg",
@@ -31,6 +40,7 @@ def encode_chunk(frames, path):
             "-loglevel",
             "error",
             "-y",
+            *filter_args,
             "-f",
             "rawvideo",
             "-pixel_format",
@@ -45,21 +55,22 @@ def encode_chunk(frames, path):
             "-c:v",
             "libx264",
             "-preset",
-            "fast",
+            settings['preset'],
             "-crf",
-            "20",
+            str(settings['crf']),
             "-pix_fmt",
             "yuv420p",
             "-movflags",
             "+faststart",
             "-threads",
-            "2",
+            str(settings['threads']),
             str(temp),
         ],
         input=frames.tobytes(),
         check=True,
     )
     temp.replace(path)
+    return settings
 
 
 def concat_recording(directory):

@@ -46,6 +46,7 @@ class Coordinator:
 
     def reset(self):
         self.calls = 0
+        self.reset_geometry()
         self.channel.message(('reset',))
         self.channel.reply({'reset':True})
 
@@ -58,7 +59,12 @@ class Coordinator:
 
     def local_stats(self):
         return dict(rank=self.rank, calls=self.calls, memory=self.engine.memory(),
-                    parallel=self.engine.info['parallel_implementation'])
+                    parallel=self.engine.info['parallel_implementation'],
+                    geometry_cache=[cache.stats() for cache in self.engine.pipe.context_geometry_caches])
+
+    def reset_geometry(self):
+        for cache in self.engine.pipe.context_geometry_caches:
+            cache.reset()
 
     def stop(self):
         try:
@@ -77,6 +83,7 @@ class Coordinator:
                     self.channel.reply({'stopped':True});break
                 if message[0] == 'reset':
                     self.calls = 0
+                    self.reset_geometry()
                     self.engine.pipe.stage_model_trace.clear()
                     torch.cuda.reset_peak_memory_stats()
                     self.channel.reply({'reset':True});continue

@@ -9,9 +9,9 @@ size = int(os.environ['WORLD_SIZE'])
 if size not in (2, 4, 8) or len(visible) != size or not 0 <= rank < size:
     raise RuntimeError('Expected matching 2/4/8 GPU visibility and torchrun ranks')
 vae = os.environ['WORLDCRAFTER_VAE_MODE']
-if vae not in ('single', 'pipeline8') or (vae == 'pipeline8' and size != 8):
+if vae not in ('single', 'pipeline4', 'pipeline8') or (vae.startswith('pipeline') and int(vae[-1]) != size):
     raise RuntimeError('Invalid VAE device topology')
-os.environ['CUDA_VISIBLE_DEVICES'] = ','.join(visible) if rank == 0 and vae == 'pipeline8' else visible[rank]
+os.environ['CUDA_VISIBLE_DEVICES'] = ','.join(visible) if rank == 0 and vae.startswith('pipeline') else visible[rank]
 
 # PyTorch FX cache entries can otherwise be read while a sibling is writing
 # them. Keep both compiler caches local and private to each rank.

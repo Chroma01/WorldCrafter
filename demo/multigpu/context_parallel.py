@@ -1,15 +1,16 @@
 """Balanced token ownership with complete current-step K/V attention.
 
-Adapted from the eight_gpu_20261008T085026Z handoff. Camera projections and
-attention retain WorldCrafter's FP32 compute contract, including over transport.
+Four/eight-device serving uses BF16 camera attention and stage-scoped geometry.
 """
 from functools import partial
+import os
 import types
 
 import torch
 import torch.distributed as dist
 import torch.distributed._functional_collectives as fc
 import torch.nn.functional as F
+from .geometry_cache import GeometryCache
 
 
 def initialize_attention():
@@ -104,7 +105,14 @@ class KVAttention:
 
 @torch.compiler.disable
 def local_geometry(camera, control, layout):
-    """Slice this forward's geometry; never reuse geometry from another pose."""
+    if not layout.optimized:
+        return build_geometry(camera, control, layout)
+    # The sampler fixes camera inputs for the whole chunk and pyramid stage.
+    # Scope changes and session resets invalidate both owner and peer caches.
+    return layout.geometry.get(id(camera.prope_attn), lambda: build_geometry(camera, control, layout))
+
+
+def build_geometry(camera, control, layout):
     prope = camera.prope_attn
     prope._precompute_and_cache_apply_fns(
         viewmats=control['viewmats'], Ks=control.get('K'),
@@ -132,9 +140,7 @@ def local_geometry(camera, control, layout):
 
 
 def camera_prepare(camera, x, control, layout):
-    # Keep FP32 camera operations. The handoff's BF16 autocast is intentionally
-    # not inherited: it would alter the current public model's precision.
-    with torch.autocast('cuda', enabled=False):
+    with torch.autocast('cuda', dtype=torch.bfloat16, enabled=layout.optimized):
         b, t, _ = x.shape
         if hasattr(camera, 'cam_encoder') and 'cam_emb' in control:
             y = camera.cam_encoder(control['cam_emb'])
@@ -145,7 +151,10 @@ def camera_prepare(camera, x, control, layout):
         aq, akv, ao = local_geometry(camera, control, layout)
         q = aq(project(camera.q_proj))
         k, v = akv(project(camera.k_proj)), akv(project(camera.v_proj))
-        assert q.dtype == k.dtype == v.dtype == torch.float32
+        if layout.optimized:
+            q, k, v = [value.to(torch.bfloat16) for value in (q, k, v)]
+        else:
+            assert q.dtype == k.dtype == v.dtype == torch.float32
         kv = layout.pad(torch.stack((k, v), dim=3).permute(0, 2, 1, 3, 4), layout.cp)
         pending = torch.ops._c10d_functional.all_gather_into_tensor(
             kv.permute(1, 0, 2, 3, 4).contiguous(), layout.world_size, dist.group.WORLD.group_name)
@@ -153,7 +162,7 @@ def camera_prepare(camera, x, control, layout):
 
 
 def camera_finish(camera, prepared, layout):
-    with torch.autocast('cuda', enabled=False):
+    with torch.autocast('cuda', dtype=torch.bfloat16, enabled=layout.optimized):
         q, pending, ao = prepared
         kv = layout.restore_current(fc.wait_tensor(pending).permute(1, 0, 2, 3, 4))
         k, v = kv.permute(0, 2, 1, 3, 4).unbind(3)
@@ -201,12 +210,20 @@ def install(pipe, fusion='rope', compile_blocks=True):
     if size not in (2, 4, 8):
         raise ValueError("Context parallel serving requires 2, 4 or 8 ranks")
     records = []
+    optimized = os.environ.get('WORLDCRAFTER_DEMO_OPTIMIZED', '0') == '1'
+    pipe.context_geometry_caches = []
     for index, model in enumerate((pipe.stage_transformers[0], pipe.stage_transformers[2])):
         if model.config.is_amplify_history:
             raise ValueError("History amplification is not supported by this backend")
         layout = BalancedLayout(rank, size)
+        layout.optimized = optimized
+        layout.geometry = GeometryCache()
+        pipe.context_geometry_caches.append(layout.geometry)
         def split(module, args, layout=layout, index=index):
             layout.configure(args[0].shape[1], args[4])
+            chunk, stage, _, _ = pipe.stage_forward_context
+            layout.geometry.begin((chunk, stage, args[0].shape[0], layout.total,
+                                   layout.current, str(args[0].dtype), str(args[0].device)))
             if layout.cn == 0:
                 raise ValueError("Each rank must own current tokens")
             record = dict(branch=index, rank=rank, history=layout.history, current=layout.current,
@@ -227,5 +244,7 @@ def install(pipe, fusion='rope', compile_blocks=True):
             if compile_blocks:
                 block.compile(mode='default', dynamic=False)
     return dict(strategy=f'cp_balanced_kv{size}', world_size=size, fusion=fusion,
-                camera_compute_dtype='float32', camera_transport_dtype='float32',
+                camera_compute_dtype='bfloat16' if optimized else 'float32',
+                camera_transport_dtype='bfloat16' if optimized else 'float32',
+                geometry_cache=optimized,
                 padding='excluded_from_keys_and_output', observed_layouts=records)
