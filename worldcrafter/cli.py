@@ -33,6 +33,10 @@ def build_parser() -> argparse.ArgumentParser:
         help="Optional precomputed chunk-local UCPE poses for fast; --camera-path always supplies global metric poses",
     )
     parser.add_argument("--image-path", type=Path)
+    parser.add_argument(
+        "--gravity-align", action=argparse.BooleanOptionalAction, default=True,
+        help="Align I2V camera controls to image gravity (default: on); disable for calibrated trajectories",
+    )
     camera = parser.add_mutually_exclusive_group()
     camera.add_argument("--camera-path", type=Path, help="Global c2w trajectory (.npy)")
     camera.add_argument("--actions", help='Camera actions, e.g. "forward1x2 yaw_left30x3 backward1"')
@@ -173,16 +177,51 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
 
 
 def prepare_camera(args: argparse.Namespace) -> None:
+    args.gravity_calibration = None
+    world_up = None
+    if args.mode == "i2v" and args.gravity_align:
+        if args.local_camera_path is not None:
+            args.gravity_calibration = dict(
+                enabled=False, status="fallback", world_up=None,
+                reason="Preserving the supplied global/local camera pair",
+            )
+        else:
+            from PIL import Image, ImageOps
+            from .calibration import calibrate_image
+            with Image.open(args.image_path) as source:
+                image = ImageOps.exif_transpose(source).convert("RGB").resize((args.width, args.height))
+            print("[worldcrafter] calibrating image gravity")
+            args.gravity_calibration = calibrate_image(image)
+            world_up = args.gravity_calibration["world_up"]
     if args.camera_events is not None:
         from .camera import build_trajectory, save_trajectory
 
-        camera, records = build_trajectory(args.camera_events, **args.camera_options)
+        camera, records = build_trajectory(args.camera_events, world_up=world_up, **args.camera_options)
         directory = args.output_path.parent / f"{args.output_path.stem}_trajectory"
         args.camera_path = save_trajectory(
             directory, camera, records, fps=args.fps,
             events=args.camera_events, options=args.camera_options,
         )
         print(f"[worldcrafter] saved {len(records)} camera chunks to {args.camera_path}")
+    elif world_up is not None:
+        import numpy as np
+        from .gravity import align_trajectory
+        original = args.camera_path
+        camera = align_trajectory(np.load(original, allow_pickle=False), world_up)
+        directory = args.output_path.parent / f"{args.output_path.stem}_trajectory"
+        directory.mkdir(parents=True, exist_ok=True)
+        args.camera_path = directory / "camera_gravity.npy"
+        if args.camera_path.resolve() == original.resolve():
+            raise ValueError("Aligned camera output would overwrite its input; choose a different output path")
+        np.save(args.camera_path, camera)
+        args.gravity_calibration["source_camera_path"] = str(original)
+    if args.gravity_calibration is not None:
+        import json
+        directory = args.output_path.parent / f"{args.output_path.stem}_trajectory"
+        directory.mkdir(parents=True, exist_ok=True)
+        (directory / "calibration.json").write_text(
+            json.dumps(args.gravity_calibration, indent=2) + "\n"
+        )
 
 
 __all__ = ["build_parser", "parse_args", "prepare_camera"]

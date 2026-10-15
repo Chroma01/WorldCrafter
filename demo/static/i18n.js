@@ -1,5 +1,7 @@
 // Interface language is independent of the English inference prompt.
 const messages = {
+  "重力适配": "Gravity alignment",
+  "正在校准重力方向": "Calibrating gravity",
   "移动 / 升降": "Move / Elevate",
   "原地转头": "Look",
   "环绕": "Orbit",

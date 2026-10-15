@@ -99,6 +99,7 @@ async def caption(body: CaptionRequest):
 
 
 class CreateSession(BaseModel):
+    gravity_align: bool = True
     preset: str = DEFAULT_PRESET
     upload_id: str | None = Field(None, pattern=r"^[a-f0-9]{64}$")
     prompt: str = Field(min_length=1, max_length=10000)
@@ -121,7 +122,7 @@ def create_session(body: CreateSession):
     if not image.is_file():
         raise HTTPException(404, "Input image is missing")
     try:
-        return m.create(image, body.prompt, body.seed, body.max_chunks)
+        return m.create(image, body.prompt, body.seed, body.max_chunks, gravity_align=body.gravity_align)
     except ValueError as exc:
         raise HTTPException(409, str(exc))
 

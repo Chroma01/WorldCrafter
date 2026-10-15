@@ -99,6 +99,32 @@ subdirectories. Keep generated sessions in a writable output directory.
 
 ## Start exploring
 
+### Gravity alignment
+
+**Gravity alignment** is enabled by default. Upload or select an image and click
+**Explore** to estimate its gravity with GeoCalib before exploration. Uploading
+alone does not trigger calibration. The status displays **Calibrating gravity**;
+no movement input is needed to start this step. The result is reused throughout
+the session and on Restart, and identical images can reuse the calibration cache.
+Changing the image uses that image's calibration. To bypass alignment, uncheck
+the option before Explore; it is fixed during a session.
+
+Yaw and horizontal orbit follow the estimated vertical axis, including input
+pitch and roll; vertical orbit keeps its camera-local pitch axis. The input view,
+orbit radius and generation FOV are preserved. Calibration runs once on CPU in
+the server, and the resulting camera poses are shared by all GPU workers in
+1/2/4/8-GPU modes. It does not run for each video chunk.
+
+If calibration fails or returns an unusable result, exploration automatically
+continues with gravity alignment disabled, without an interface warning.
+`session.json` records whether alignment was applied and calibration alongside the
+saved local/global camera poses. See the
+[I2V guide](../test/README.md#gravity-alignment) for dependencies, cache locations,
+trajectory semantics and limitations. GeoCalib code is Apache-2.0 licensed and
+its pretrained weights are CC-BY-4.0; see the [upstream project](https://github.com/cvg/GeoCalib).
+
+### Controls
+
 Open `http://localhost:8080` in your browser, then:
 
 1. Select a scene preset to load its image and prompt, or upload your own image.

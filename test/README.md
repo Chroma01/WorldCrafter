@@ -37,6 +37,7 @@ or `t2v_<prompt-file-name>.mp4` for T2V (`t2v.mp4` for inline text).
 | `--model-type` | Select `base` or `fast`. |
 | `--mode` | Select `i2v` or `t2v`. |
 | `--image-path` | Starting image for I2V; omit for T2V. |
+| `--gravity-align` / `--no-gravity-align` | Enable/disable image-based gravity alignment; enabled by default for I2V, not applied to T2V. |
 | `--prompt` | Prompt text, a `.txt` file, or an automatic prompt mode for I2V. |
 | `--camera-path` | Load a global c2w trajectory from a `.npy` file. |
 | `--actions-file` | Generate the trajectory from an action text file. Use `--actions "forward1 yaw_left30"` to pass actions directly instead. |
@@ -51,6 +52,52 @@ Negative prompts affect Base with CFG enabled; Fast uses CFG=1 and does not use
 them for sampling.
 
 ## Camera inputs
+
+### Gravity alignment
+
+I2V estimates the input image's full gravity direction with
+[GeoCalib](https://github.com/cvg/GeoCalib) before generating the camera path.
+Alignment is enabled by default for both Base and Fast. Yaw and horizontal
+orbit use the estimated vertical axis; forward/sideways translation follows
+the corresponding horizontal plane. The initial image view is preserved,
+including its pitch and roll. Vertical orbit retains its camera-local pitch
+axis. Alignment does not estimate object depth, choose an orbit target, or
+change the generation FOV.
+
+```bash
+python inference.py --model-type fast --mode i2v \
+  --image-path path/to/image.png --prompt path/to/prompt.txt \
+  --actions "forward1 yaw_left30 orbit_left15"
+
+# Preserve an already calibrated or gravity-aligned camera trajectory.
+python inference.py --model-type fast --mode i2v \
+  --image-path path/to/image.png --prompt path/to/prompt.txt \
+  --camera-path path/to/calibrated_camera.npy --no-gravity-align
+```
+
+For `--actions` and `--actions-file`, motion is constructed in the estimated
+gravity frame. For `--camera-path`, the default assumes an **uncalibrated path
+authored for a level initial camera**: relative rotations and translations are
+reoriented about the first camera pose. Do not apply this a second time to an
+aligned path, or to a real calibrated trajectory; use `--no-gravity-align`.
+When `--local-camera-path` is supplied, alignment is automatically bypassed to
+preserve the supplied global/local camera pair. Omit that option to derive local
+poses from the aligned global trajectory.
+
+Install the updated project dependencies to obtain the pinned GeoCalib package.
+Its weights download on first use to the PyTorch cache. Calibration runs on CPU;
+results are cached under `$XDG_CACHE_HOME/worldcrafter/gravity` (default
+`~/.cache/worldcrafter/gravity`), keyed by model version and preprocessed image.
+Use local disk for these caches. Calibration uncertainty is saved as metadata
+and does not gate generation. If calibration fails or returns an unusable result,
+generation automatically continues with gravity alignment disabled. The fallback
+is recorded in calibration metadata without an interface or command-line warning.
+
+The effective camera path and `calibration.json` are saved under
+`<video-stem>_trajectory/` next to the output video; the video metadata also
+records calibration. Input camera files are not overwritten. T2V does not run
+image calibration. For the interactive interface, see the
+[Demo guide](../demo/README.md#gravity-alignment).
 
 Define camera motion with actions, or load an existing camera-to-world (c2w)
 trajectory. Both options work with I2V and T2V and use 33 frames per chunk.

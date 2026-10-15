@@ -42,14 +42,14 @@ class DemoCaptionTests(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     self.manager.request_caption("other.png", "third-person")
                 with self.assertRaises(ValueError):
-                    self.manager.create("image.png", "scene", 42, 1)
+                    self.manager.create("image.png", "scene", 42, 1, gravity_align=False)
             finally:
                 release.set()
             self.assertEqual(future.result(5)["prompt"], "A garden.")
             self.assertEqual(owner, [self.manager.thread.ident])
 
     def test_active_session_rejects_caption(self):
-        self.manager.create("image.png", "scene", 42, 1)
+        self.manager.create("image.png", "scene", 42, 1, gravity_align=False)
         with self.assertRaises(ValueError):
             self.manager.request_caption("image.png", "first-person")
 

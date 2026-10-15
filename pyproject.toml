@@ -10,6 +10,7 @@ readme = "README.md"
 requires-python = ">=3.11,<3.12"
 license-files = ["LICENSE.txt"]
 dependencies = [
+    "geocalib @ git+https://github.com/cvg/GeoCalib.git@1dedb29f94fc11b896c5f572005978aeebccd67f",
     "torch==2.10.0",
     "torchvision==0.25.0",
     "triton==3.6.0",

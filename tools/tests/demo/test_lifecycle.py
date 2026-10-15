@@ -38,7 +38,7 @@ class LifecycleTests(unittest.IsolatedAsyncioTestCase):
                 await asyncio.sleep(0.02)
 
     def create(self, action=True):
-        info = self.m.create(self.image, "test scene", 42, 5)
+        info = self.m.create(self.image, "test scene", 42, 5, gravity_align=False)
         s = self.m.sessions[info["session_id"]]
         q = asyncio.Queue()
         self.m.connect(s.id, q)
@@ -76,7 +76,7 @@ class LifecycleTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(s.chunks, 0)
 
     async def test_six_step_progress_and_reset(self):
-        info = self.m.create(self.image, "test scene", 42, 1)
+        info = self.m.create(self.image, "test scene", 42, 1, gravity_align=False)
         s = self.m.sessions[info["session_id"]]
         q = asyncio.Queue()
         self.m.connect(s.id, q)
@@ -130,7 +130,7 @@ class LifecycleTests(unittest.IsolatedAsyncioTestCase):
         s, q = self.create()
         await self.until(lambda: s.active is not None)
         with self.assertRaises(ValueError):
-            self.m.create(self.image, "second", 42, 1)
+            self.m.create(self.image, "second", 42, 1, gravity_align=False)
         self.cmd(s, "reset")
         self.tap(s)
         await self.until(lambda: s.active is not None)
@@ -147,7 +147,7 @@ class LifecycleTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(s.chunks, 1)
         self.assertTrue(s.cancel.is_set())
         self.assertEqual(s.state, "disconnected")
-        self.m.create(self.image, "new", 42, 1)
+        self.m.create(self.image, "new", 42, 1, gravity_align=False)
 
     async def test_latest_input_until_chunk_start_and_active_is_immutable(self):
         s, q = self.create()

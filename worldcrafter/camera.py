@@ -298,12 +298,17 @@ def _reverse_sampled_curve(curve, last_time, times):
 def build_trajectory(
     events: list[str], *, dtype: str = "float64", sampling: str = "linear",
     last_frame: str = "exclude", orbit_radius: float = DEFAULT_ORBIT_RADIUS,
+    world_up=None,
 ) -> tuple[np.ndarray, list[dict[str, object]]]:
     if not events:
         raise ValueError("Provide at least one camera action")
     if not math.isfinite(orbit_radius) or orbit_radius < 0:
         raise ValueError("Orbit radius must be finite and non-negative")
     world = np.eye(4, dtype=np.float64)
+    if world_up is not None:
+        from .gravity import gravity_frame
+        world[:3, :3] = gravity_frame(world_up)
+    initial_inverse = np.linalg.inv(world)
     chunks, records, curves, sample_times = [], [], [], []
 
     def append(event, curve, times, poses=None):
@@ -360,7 +365,13 @@ def build_trajectory(
             orbit_radius=orbit_radius,
         )
         append(event, curve, times)
-    return np.concatenate(chunks).astype(dtype), records
+    poses = np.concatenate(chunks)
+    if world_up is not None:
+        poses = initial_inverse @ poses
+        for record in records:
+            for key in ("logical_start_c2w", "logical_end_c2w"):
+                record[key] = (initial_inverse @ np.asarray(record[key])).tolist()
+    return poses.astype(dtype), records
 
 
 def save_trajectory(

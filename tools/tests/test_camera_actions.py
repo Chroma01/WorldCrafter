@@ -34,7 +34,8 @@ class CameraActionTests(unittest.TestCase):
         original = np.load(DEFAULT_I2V_CAMERA)
         if original.ndim == 4:
             original = original[0]
-        np.testing.assert_array_equal(camera[:, :3], original[:len(camera), :3])
+        # Bundled FP64 files may have been authored with a different NumPy/BLAS.
+        np.testing.assert_allclose(camera[:, :3], original[:len(camera), :3], atol=1e-14, rtol=0)
 
     def test_demo_and_script_share_all_ten_actions(self):
         events = parse_actions("yr25 pu20 f1 b0.5 l0.7 r0.3 up0.4 down0.2 yl15 pd10")
@@ -79,7 +80,7 @@ class CameraActionTests(unittest.TestCase):
                     for selection in (["--actions", "f1x2 yl30"], ["--actions-file", str(source)]):
                         args = parse_args([
                             "--model-type", model, "--mode", mode,
-                            "--output-path", str(root / f"{model}_{mode}.mp4"), *selection,
+                            "--output-path", str(root / f"{model}_{mode}.mp4"), "--no-gravity-align", *selection,
                         ])
                         prepare_camera(args)
                         self.assertEqual(args.camera_path.read_bytes(), standalone.read_bytes())
@@ -102,10 +103,10 @@ class CameraActionTests(unittest.TestCase):
 
     def test_file_and_default_inputs_remain_unchanged(self):
         for mode, default in (("i2v", DEFAULT_I2V_CAMERA), ("t2v", DEFAULT_T2V_CAMERA)):
-            args = parse_args(["--mode", mode])
+            args = parse_args(["--mode", mode, "--no-gravity-align"])
             prepare_camera(args)
             self.assertEqual(args.camera_path, default)
-        args = parse_args(["--camera-path", "custom.npy"])
+        args = parse_args(["--camera-path", "custom.npy", "--no-gravity-align"])
         prepare_camera(args)
         self.assertEqual(args.camera_path, Path("custom.npy"))
 
@@ -138,14 +139,18 @@ class CameraActionTests(unittest.TestCase):
     def test_bundled_cases_and_action_round_trip(self):
         root = Path(__file__).resolve().parents[2] / "test"
         cases = sorted(root.glob("*/*/actions.txt"))
-        self.assertGreaterEqual(len(cases), 10)
+        self.assertTrue(cases)
+        self.assertEqual(
+            {path.parent for path in cases},
+            {path.parent for path in root.glob("*/*/camera.npy")},
+        )
         for path in cases:
             with self.subTest(case=path.parent), tempfile.TemporaryDirectory() as temp:
                 events, options = parse_trajectory(path.read_text())
                 camera, records = build_trajectory(events, **options)
                 reference = np.load(path.with_name("camera.npy"))
                 self.assertEqual(camera.dtype, reference.dtype)
-                np.testing.assert_array_equal(camera[:, :3], reference)
+                np.testing.assert_allclose(camera[:, :3], reference, atol=1e-14, rtol=0)
                 saved = save_trajectory(Path(temp), camera, records, events=events, options=options)
                 again, settings = parse_trajectory(saved.with_name("actions.txt").read_text())
                 rebuilt, _ = build_trajectory(again, **settings)

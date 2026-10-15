@@ -35,6 +35,8 @@ class Session:
     prompt: str
     seed: int
     max_chunks: int
+    gravity_align: bool = True
+    calibration: dict | None = None
     generation: int = 0
     chunks: int = 0
     completed_steps: int = 0
@@ -63,6 +65,9 @@ class Session:
             session_id=self.id,
             generation=self.generation,
             state=self.state,
+            gravity_align=self.gravity_align,
+            gravity_aligned=bool(self.calibration and self.calibration.get("enabled", True)),
+            calibration=self.calibration,
             chunks=self.chunks,
             completed_steps=self.completed_steps,
             max_chunks=self.max_chunks,
@@ -124,7 +129,7 @@ class Manager:
 
         self.loop.call_soon_threadsafe(deliver)
 
-    def create(self, image, prompt, seed, max_chunks):
+    def create(self, image, prompt, seed, max_chunks, gravity_align=True):
         with self.cv:
             if self.caption_request is not None:
                 raise ValueError("正在生成世界描述，请稍候")
@@ -134,7 +139,9 @@ class Manager:
                 and self.active.state not in ("complete", "error")
             ):
                 raise ValueError("Only one active session is allowed")
-            s = Session(uuid.uuid4().hex, str(image), prompt, seed, max_chunks)
+            s = Session(uuid.uuid4().hex, str(image), prompt, seed, max_chunks, gravity_align=gravity_align)
+            if gravity_align:
+                s.state = "calibrating"
             self.sessions[s.id] = s
             self.active = s
             self.persist(s)
@@ -178,6 +185,9 @@ class Manager:
             prompt=s.prompt,
             seed=s.seed,
             max_chunks=s.max_chunks,
+            gravity_align=s.gravity_align,
+            gravity_aligned=bool(s.calibration and s.calibration.get("enabled", True)),
+            calibration=s.calibration,
             state=s.state,
             route=list(ROUTE),
             fps=16,
@@ -207,7 +217,7 @@ class Manager:
                 raise ValueError("Session has stopped; create a new session")
             self.listeners[sid] = queue
             s.connected = True
-            s.state = "queued" if self.ready else "loading_model"
+            s.state = ("calibrating" if s.gravity_align and s.calibration is None else "queued") if self.ready else "loading_model"
             self.emit(s)
             self.cv.notify_all()
 
@@ -290,6 +300,10 @@ class Manager:
                         break
                     s = self.active
                     caption = self.caption_request
+                    calibrating = (
+                        s is not None and s.gravity_align and s.calibration is None
+                        and not s.stopped and s.state != "error"
+                    )
                     key = None if s is None else (s.id, s.generation)
                     needs_close = owned is not None and (
                         owned != key or s.stopped or s.chunks >= s.max_chunks
@@ -299,14 +313,15 @@ class Manager:
                         and s.connected
                         and not s.stopped
                         and not s.paused
+                        and s.state != "error"
                         and s.chunks < s.max_chunks
                     )
-                    if eligible and not s.controls.has_action():
+                    if eligible and not calibrating and not s.controls.has_action():
                         if s.state != "waiting_action":
                             s.state = "waiting_action"
                             self.emit(s)
                         eligible = False
-                    if not needs_close and not eligible and caption is None:
+                    if not needs_close and not eligible and caption is None and not calibrating:
                         self.cv.wait(timeout=1)
                         continue
                     generation, cancel = (
@@ -331,6 +346,19 @@ class Manager:
                             self.cv.notify_all()
                     continue
                 try:
+                    if calibrating:
+                        from worldcrafter.calibration import calibrate_image
+                        with self.cv:
+                            s.state = "calibrating"
+                            self.emit(s)
+                        calibration = calibrate_image(s.image)
+                        with self.cv:
+                            s.calibration = calibration
+                            if not s.stopped and generation == s.generation:
+                                s.state = "waiting_action" if s.connected else "waiting_connection"
+                            self.persist(s)
+                            self.emit(s)
+                        continue
                     if owned != key:
                         with self.cv:
                             s.state = "initializing"
@@ -338,6 +366,11 @@ class Manager:
                         start = time.perf_counter()
                         engine.initialize_session(
                             s.image, s.prompt, s.seed, s.max_chunks, cancel
+                        )
+                        from .camera import Camera
+                        camera = (
+                            Camera(s.calibration["world_up"])
+                            if s.gravity_align and s.calibration.get("enabled", True) else None
                         )
                         init_s = time.perf_counter() - start
                         owned = key
@@ -374,7 +407,7 @@ class Manager:
 
                     engine.on_step_completed = step_completed
                     try:
-                        result = engine.next_chunk(action)
+                        result = engine.next_chunk(action, poses=camera.append(action)) if camera is not None else engine.next_chunk(action)
                     finally:
                         engine.on_step_completed = None
                     if cancel.is_set():

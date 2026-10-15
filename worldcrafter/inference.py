@@ -310,6 +310,7 @@ class WorldCrafter:
         camera_x_fov: float = 100.0,
         camera_xi: float = 0.0,
         local_camera_path: Path | None = None,
+        gravity_calibration: dict | None = None,
     ) -> InferenceResult:
         if on_chunk_saved is not None and chunk_output_dir is None:
             raise ValueError("on_chunk_saved requires chunk_output_dir")
@@ -414,6 +415,8 @@ class WorldCrafter:
                 "model_sha256"
             ],
         }
+        if gravity_calibration is not None:
+            run_contract["gravity_calibration"] = gravity_calibration
         resume_state: dict[str, object] | None = None
         prior_history_selection: list[dict[str, object]] = []
         if resume_from is not None:
@@ -518,6 +521,8 @@ class WorldCrafter:
             *[record.to_jsonable() for record in self.memory_provider.render_records],
         ]
         summary = {
+            "gravity_align": bool(gravity_calibration and gravity_calibration.get("enabled", True)),
+            "gravity_calibration": gravity_calibration,
             "format": "worldcrafter_inference_v2",
             "mode": mode,
             "model_path": str(self.model_path),

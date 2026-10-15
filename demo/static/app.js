@@ -1,4 +1,4 @@
-import { localizedText, initLanguage } from "./i18n.js?v=layout-3";
+import { localizedText, initLanguage } from "./i18n.js?v=gravity-1";
 const $ = (id) => document.getElementById(id);
 const PLAYBACK_FPS = 10;
 const ENCODED_FPS = 16;
@@ -47,6 +47,7 @@ const labels = {
   waiting_connection: "等待浏览器连接",
   loading_model: "正在加载常驻模型",
   initializing: "正在编码首帧与描述",
+  calibrating: "正在校准重力方向",
   queued: "等待下一段",
   waiting_action: "等待动作输入 · WASD / QE / 方向键 / IJKL",
   generating: "正在生成",
@@ -75,7 +76,7 @@ function send(value) {
 }
 function refreshInputs() {
   const disabled = editingLocked || inputBusy;
-  for (const id of ["upload", "seed", "maxChunks", "firstPerson", "thirdPerson"])
+  for (const id of ["upload", "seed", "maxChunks", "gravityAlign", "firstPerson", "thirdPerson"])
     $(id).disabled = disabled;
   $("prompt").disabled = disabled || (uploadId !== null && !captionReady);
   document.querySelector('label[for="upload"]').setAttribute("aria-disabled", String(disabled));
@@ -329,6 +330,7 @@ $("start").addEventListener("click", async () => {
         prompt: $("prompt").value,
         seed: Number($("seed").value),
         max_chunks: Number($("maxChunks").value),
+        gravity_align: $("gravityAlign").checked,
       }),
     });
     session = s.session_id;

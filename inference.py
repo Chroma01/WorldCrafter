@@ -30,6 +30,7 @@ def main() -> None:
         image_path=args.image_path,
         camera_path=args.camera_path,
         local_camera_path=args.local_camera_path,
+        gravity_calibration=args.gravity_calibration,
         output_path=args.output_path,
         chunk_output_dir=args.chunk_output_dir,
         state_output_dir=args.state_output_dir,

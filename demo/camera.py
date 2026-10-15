@@ -89,12 +89,17 @@ class ControlBuffer:
 
 
 class Camera:
-    def __init__(self):
+    def __init__(self, world_up=None):
         self.world = np.eye(4, dtype=np.float64)
+        if world_up is not None:
+            from worldcrafter.gravity import gravity_frame
+            self.world[:3, :3] = gravity_frame(world_up)
+        self.initial_inverse = np.linalg.inv(self.world)
         self.local_chunks, self.global_chunks = [], []
 
     def append(self, action):
         global_pose, end = sample_chunk(self.world, action.normalized())
+        global_pose = self.initial_inverse @ global_pose
         global_pose = global_pose[:, :3].astype(np.float32)
         local = relative_poses(global_pose)
         self.world = end
