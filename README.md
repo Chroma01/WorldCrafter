@@ -185,6 +185,42 @@ One GPU is used by default; use `--devices` for multi-GPU inference.
 See the [demo guide](demo/README.md) for multi-GPU setup, camera controls,
 and deployment options.
 
+## Inference with Reactor Runtime
+
+The [Reactor integration](reactor/README.md) serves WorldCrafter-Fast as a
+streaming model with image input, camera controls, scene memory and a small
+browser demo. It reuses the WorldCrafter team's
+[Cookbook adapter](https://github.com/reactor-team/reactor-cookbook/pull/75).
+
+On a Linux GPU host with Docker, NVIDIA Container Toolkit and the
+[Reactor CLI](https://docs.reactor.inc/deploy/development/local-testing):
+
+```bash
+cd reactor
+reactor build
+# Select one free GPU for single-GPU inference.
+reactor run --gpus '"device=0"' --port 8090 -e WORLDCRAFTER_GPUS=1
+```
+
+The build prepares the pinned source and inference environment; Reactor resolves
+the pinned weights at launch. Wait until `curl -s localhost:8090/health` reports
+`"state":"available"`. To use the adapter's default eight-GPU configuration,
+see [reactor/README.md](reactor/README.md).
+
+In another terminal, with Node.js 20.19+ or 22.12+:
+
+```bash
+cd reactor/demo
+npm ci
+npm run dev
+```
+
+Open the printed frontend URL (normally `http://localhost:5173`), set the Runtime
+endpoint to `http://localhost:8090`, and click **Connect**. Choose an image and
+prompt, click **Start world**, then use the camera buttons to explore one chunk
+at a time. For remote GPUs, follow the
+[SSH and WebRTC guidance](reactor/README.md#using-a-remote-gpu-host).
+
 ## 📝 Citation
 
 If you find WorldCrafter useful in your research, please cite:
