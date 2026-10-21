@@ -9,7 +9,9 @@ Reactor's `main_video` track and supports one GPU or eight GPUs on one host.
 The eight-GPU configuration uses WorldCrafter's context-parallel DiT, fused
 KV/RoPE path, geometry cache and eight-GPU VAE pipeline.
 
-![WorldCrafter's waterfall scene running in the Reactor browser demo](assets/demo.png)
+![WorldCrafter browser demo with movement pads and one-click orbit controls](assets/demo.png)
+
+*The browser demo after six generated chunks with an uploaded waterfall image. Select your own image and prompt to start.*
 
 The adapter uses Reactor Runtime **3.8.3**. WorldCrafter runs in a separate
 Python **3.11** / NumPy **1** environment because the Runtime requires Python
@@ -97,15 +99,24 @@ npm run dev
 
 Open the printed URL (normally `http://localhost:5173`). Set **Runtime** to
 `http://localhost:8090` and click **Connect**. Choose a PNG, JPEG or WebP,
-write a scene prompt, then click **Start world**. Connecting and selecting an
-image do not generate video. There is no default image.
+then click **Start world** with the prefilled scene prompt, or edit the prompt
+to describe your image more precisely. Connecting and selecting an image do
+not generate video. There is no default image.
 
-The first 33-frame chunk is stationary. Use the camera buttons to request the
-next chunk: translations, look directions and orbit directions are supported.
-Set **Distance / chunk** or **Degrees / chunk** before clicking. The demo waits
-for your requested chunk to finish before accepting another camera move; it
-does not repeat held keys or build an automatic movement queue. The SDK also
-supports explicitly queuing several chunks through `move`.
+The first 33-frame chunk is stationary. Hold **W / A / S / D** to move,
+**arrow keys** to look around, and **E / Q** to rise or descend. The on-screen
+direction pads support holding with a mouse or touch. Release to stop requesting
+movement; an in-flight chunk and already-buffered video still finish.
+
+The demo sends one move at a time and samples the latest held direction when
+the previous chunk completes. Multiple held keys use the most recently pressed
+direction: the native model supports one camera action per chunk. Keys are
+cleared on pause, window blur or entering a text field. **Escape** releases all
+controls. The four **Orbit** buttons stay visible below the direction pads:
+click once to generate one left, right, up or down orbit chunk. Holding an orbit
+button does not repeat it; these buttons wait for the current move to finish.
+**Camera settings** contains distance and angle adjustments.
+The SDK also supports explicitly queuing several chunks through `move`.
 
 **Pause** stops future generation; already-buffered video can still play.
 **Resume** continues pending motion. **Reset world** reuses the active image,

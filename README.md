@@ -199,7 +199,7 @@ On a Linux GPU host with Docker, NVIDIA Container Toolkit and the
 cd reactor
 reactor build
 # Select one free GPU for single-GPU inference.
-reactor run --gpus '"device=0"' --port 8090 -e WORLDCRAFTER_GPUS=1
+reactor run --gpus device=0 --port 8090 -e WORLDCRAFTER_GPUS=1
 ```
 
 The build prepares the pinned source and inference environment; Reactor resolves
@@ -216,9 +216,10 @@ npm run dev
 ```
 
 Open the printed frontend URL (normally `http://localhost:5173`), set the Runtime
-endpoint to `http://localhost:8090`, and click **Connect**. Choose an image and
-prompt, click **Start world**, then use the camera buttons to explore one chunk
-at a time. For remote GPUs, follow the
+endpoint to `http://localhost:8090`, and click **Connect**. Choose an image,
+edit the prefilled scene prompt if desired, and click **Start world**. Use WASD
+and the arrow keys for continuous camera control or the orbit buttons for a
+single chunk. For remote GPUs, follow the
 [SSH and WebRTC guidance](reactor/README.md#using-a-remote-gpu-host).
 
 ## 📝 Citation

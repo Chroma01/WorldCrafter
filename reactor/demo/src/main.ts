@@ -18,26 +18,57 @@ const actions = [
   ["orbit_down", "Orbit down"],
 ] as const;
 
+const bindings: Record<string, string> = {
+  KeyW: "forward",
+  KeyS: "backward",
+  KeyA: "left",
+  KeyD: "right",
+  KeyE: "up",
+  KeyQ: "down",
+  ArrowLeft: "yaw_left",
+  ArrowRight: "yaw_right",
+  ArrowUp: "pitch_up",
+  ArrowDown: "pitch_down",
+};
+const keyLabels = ["W", "S", "A", "D", "E", "Q", "←", "→", "↑", "↓"];
+const pad = (indices: number[]) =>
+  indices
+    .map(
+      (i) =>
+        `<button data-action="${actions[i][0]}" aria-label="${actions[i][1]}" disabled><kbd>${keyLabels[i]}</kbd><span>${actions[i][1]}</span></button>`,
+    )
+    .join("");
+
 document.querySelector<HTMLDivElement>("#app")!.innerHTML = `
 <header><a class="brand" href="https://reactor.inc" target="_blank" rel="noreferrer"><img src="/reactor-symbol.svg" alt="Reactor" width="32" height="23"><strong>WorldCrafter</strong><span>on Reactor</span></a>
 <div class="connection"><label for="endpoint">Runtime</label><input id="endpoint" type="url" value="http://localhost:8090" spellcheck="false"><span id="status" role="status">disconnected</span><button id="connect">Connect</button></div></header>
 <main><aside><p class="eyebrow">01 / BUILD YOUR WORLD</p><h1>A scene.<br>A new perspective.</h1><p class="hint">Start from an image, then explore with camera motion and persistent scene memory.</p>
 <label for="image">Reference image</label><input id="image" type="file" accept="image/png,image/jpeg,image/webp"><img id="preview" alt="Selected reference" hidden>
-<label for="prompt">Scene prompt</label><textarea id="prompt" rows="6" maxlength="4096" placeholder="Describe the scene and first- or third-person perspective…"></textarea><p class="hint">Image and prompt apply when you start a new world. Selecting a file does not generate video.</p>
+<label for="prompt">Scene prompt</label><textarea id="prompt" rows="6" maxlength="4096" placeholder="Describe the scene and first- or third-person perspective…">Start from the reference image's viewpoint. Show a continuous view of the same scene as the camera moves. Preserve the visible subjects, geometry, colors, lighting, and visual style; keep the environment consistent across frames.</textarea><p class="hint">A starter prompt is filled in. Edit it to match your image for better results. Selecting a file does not generate video.</p>
 <label for="seed">Seed</label><input id="seed" type="number" min="0" max="2147483647" step="1" value="0">
 <label class="check"><input id="gravity" type="checkbox" checked> Align camera to gravity</label>
 <button id="start" class="primary" disabled>Start world</button><p id="error" role="alert" hidden></p>
-<details><summary>How to explore</summary><p class="hint">The first chunk is stationary. Each camera click then generates one 33-frame chunk. Wait for it to finish before the next action. Changes to the prompt require Start new world.</p></details></aside>
+<details><summary>How to explore</summary><p class="hint">Hold WASD to move, arrow keys to look, and E / Q to rise / descend. Release to stop requesting movement. Each move generates 33 frames; an in-flight chunk still finishes. Changes to the prompt require Start new world.</p></details></aside>
 <section><div class="heading"><div><p class="eyebrow">02 / LIVE OUTPUT</p><h2>Explore beyond the image.</h2></div><span class="tag">640 × 384 · Adaptive playback</span></div>
 <div class="screen"><video id="video" muted playsinline aria-label="Generated WorldCrafter video"></video><div id="placeholder"><span>◇</span><h3 id="waiting">Your world starts here</h3><p>Connect, choose an image and prompt, then Start world.</p></div></div>
 <div class="player-bar"><span id="progress" role="status">No world generated yet.</span><div><button id="play" hidden>Play video</button><button id="pause" disabled>Pause</button><button id="reset" disabled>Reset world</button><button id="fullscreen" disabled>Fullscreen</button></div></div>
-<div class="controls"><div class="heading"><h3>Camera controls</h3><span id="control-status">Connect to explore</span></div><div class="amounts"><label for="distance">Distance / chunk<input id="distance" type="number" min="0.1" max="5" step="0.1" value="0.2"></label><label for="angle">Degrees / chunk<input id="angle" type="number" min="0.1" max="45" step="0.1" value="5"></label></div><div class="actions">${actions.map(([action, label]) => `<button data-action="${action}" disabled>${label}</button>`).join("")}</div><p class="hint">One click, one chunk. No held-key repeats or automatic action queue. Pause affects future generation; buffered frames can still play.</p></div>
+<div class="controls"><div class="heading"><h3>Take control</h3><span id="control-status">Connect to explore</span></div><div class="control-pads"><div><p class="eyebrow">MOVE · WASD</p><div class="keypad">${pad([0, 2, 1, 3])}</div></div><div><p class="eyebrow">LOOK · ARROW KEYS</p><div class="keypad">${pad([8, 6, 9, 7])}</div></div><div><p class="eyebrow">HEIGHT · E / Q</p><div class="height-pad">${pad([4, 5])}</div></div></div><p id="held-status" role="status">Controls released</p><p class="hint">Hold a key or screen button to explore. Release to stop adding moves. The latest held direction wins; movement is sampled once per chunk, with no backlog. An in-flight chunk and buffered video still finish.</p><div class="orbit-controls"><p class="eyebrow">ORBIT · CLICK ONCE</p><div class="actions">${actions
+  .slice(10)
+  .map(
+    ([action, label]) =>
+      `<button data-action="${action}" data-single disabled>${label}</button>`,
+  )
+  .join(
+    "",
+  )}</div><p class="hint">One click renders one orbit chunk. Available when the current move finishes.</p></div><details><summary>Camera settings</summary><div class="amounts"><label for="distance">Distance / chunk<input id="distance" type="number" min="0.1" max="5" step="0.1" value="0.2"></label><label for="angle">Degrees / chunk<input id="angle" type="number" min="0.1" max="45" step="0.1" value="5"></label></div></details></div>
 <footer><span>WorldCrafter-Fast · Tencent ARC</span><a href="https://reactor.inc" target="_blank" rel="noreferrer">Built on Reactor ↗</a></footer></section></main>`;
 
 const el = <T extends HTMLElement>(id: string) =>
   document.getElementById(id)! as T;
 const btn = (id: string) => el<HTMLButtonElement>(id);
 const inp = (id: string) => el<HTMLInputElement>(id);
+const endpointFromLink = new URLSearchParams(window.location.search).get("endpoint");
+if (endpointFromLink) inp("endpoint").value = endpointFromLink;
 const video = el<HTMLVideoElement>("video");
 const prompt = el<HTMLTextAreaElement>("prompt");
 let client: Reactor | undefined;
@@ -55,6 +86,67 @@ let preview: string | undefined;
 let frameCallback: number | undefined;
 let playing = false;
 let duration = "";
+const held = new Map<string, string>();
+let sendingMotion = false;
+function showHeld() {
+  const action = [...held.values()].at(-1);
+  el("held-status").textContent = action
+    ? `Holding: ${actions.find((a) => a[0] === action)?.[1]} · next available chunk`
+    : "Controls released";
+  document
+    .querySelectorAll<HTMLButtonElement>("[data-action]")
+    .forEach((b) =>
+      b.classList.toggle(
+        "held",
+        [...held.values()].includes(b.dataset.action!),
+      ),
+    );
+}
+function releaseControls() {
+  held.clear();
+  showHeld();
+}
+function controllable() {
+  return ready && active && !paused && completed > 0 && completed < limit;
+}
+async function pumpMotion(singleAction?: string) {
+  const action = singleAction ?? [...held.values()].at(-1);
+  if (
+    !action ||
+    !controllable() ||
+    busy ||
+    sendingMotion ||
+    completed < awaiting ||
+    queued > 0
+  )
+    return;
+  const rotation = action.includes("_");
+  const amount = Number(inp(rotation ? "angle" : "distance").value);
+  sendingMotion = true;
+  const previousAwaiting = awaiting;
+  // Reserve the slot before awaiting: state broadcasts can precede the reply.
+  awaiting = completed + 1;
+  refresh();
+  try {
+    if (
+      !Number.isFinite(amount) ||
+      amount < 0.1 ||
+      amount > (rotation ? 45 : 5)
+    )
+      throw new Error(
+        "Choose a distance of 0.1–5 or an angle of 0.1–45 degrees.",
+      );
+    await command("move", { action, amount, chunks: 1 });
+  } catch (cause) {
+    awaiting = previousAwaiting;
+    releaseControls();
+    error(cause instanceof Error ? cause.message : String(cause));
+  } finally {
+    sendingMotion = false;
+    refresh();
+    void pumpMotion();
+  }
+}
 
 function error(message: string) {
   el("error").textContent = message;
@@ -92,7 +184,7 @@ function refresh() {
         paused ||
         completed < 1 ||
         completed >= limit ||
-        pending;
+        (button.hasAttribute("data-single") && (pending || sendingMotion));
     });
   el("placeholder").hidden = playing;
   el("waiting").textContent = active
@@ -141,6 +233,7 @@ function attach() {
   void play();
 }
 function disconnected() {
+  releaseControls();
   ready = active = false;
   paused = true;
   world = completed = queued = awaiting = 0;
@@ -153,6 +246,7 @@ function disconnected() {
 }
 async function act(fn: () => Promise<void>) {
   if (busy) return;
+  releaseControls();
   busy = true;
   error("");
   refresh();
@@ -221,6 +315,7 @@ btn("connect").onclick = () =>
       const data = message.data as Record<string, unknown>;
       if (message.type === "state_update") {
         if (world !== Number(data.world_id)) {
+          releaseControls();
           clearVideo();
           awaiting = 0;
           duration = "";
@@ -231,8 +326,10 @@ btn("connect").onclick = () =>
         completed = Number(data.completed_chunks);
         queued = Number(data.queued_chunks);
         limit = Number(data.max_chunks);
+        if (paused || !active || completed >= limit) releaseControls();
         refresh();
         attach();
+        void pumpMotion();
       } else if (
         message.type === "chunk_generated" &&
         Number(data.world_id) === world
@@ -284,24 +381,77 @@ btn("start").onclick = () =>
 document
   .querySelectorAll<HTMLButtonElement>("[data-action]")
   .forEach((button) => {
-    button.onclick = () =>
-      void act(async () => {
-        const action = button.dataset.action!;
-        const rotation = action.includes("_");
-        const amount = Number(inp(rotation ? "angle" : "distance").value);
-        if (
-          !Number.isFinite(amount) ||
-          amount < 0.1 ||
-          amount > (rotation ? 45 : 5)
-        )
-          throw new Error(
-            "Choose a distance of 0.1–5 or an angle of 0.1–45 degrees.",
-          );
-        const target = completed + 1;
-        await command("move", { action, amount, chunks: 1 });
-        awaiting = target;
-      });
+    if (button.hasAttribute("data-single")) {
+      button.onclick = () => {
+        if (button.disabled) return;
+        releaseControls();
+        void pumpMotion(button.dataset.action!);
+      };
+      return;
+    }
+    button.onpointerdown = (event) => {
+      if (event.button !== 0 || button.disabled) return;
+      event.preventDefault();
+      button.setPointerCapture(event.pointerId);
+      held.set(`pointer:${event.pointerId}`, button.dataset.action!);
+      showHeld();
+      void pumpMotion();
+    };
+    const release = (event: PointerEvent) => {
+      held.delete(`pointer:${event.pointerId}`);
+      showHeld();
+    };
+    button.onpointerup = release;
+    button.onpointercancel = release;
+    button.onlostpointercapture = release;
+    // Keyboard/screen-reader activation still offers a single step.
+    button.onclick = (event) => {
+      if (event.detail !== 0 || button.disabled) return;
+      held.set("activation", button.dataset.action!);
+      void pumpMotion();
+      held.delete("activation");
+      showHeld();
+    };
   });
+function editing(target: EventTarget | null) {
+  return (
+    target instanceof HTMLElement &&
+    !!target.closest("input, textarea, select, [contenteditable]")
+  );
+}
+window.addEventListener("keydown", (event) => {
+  if (event.code === "Escape") {
+    releaseControls();
+    return;
+  }
+  const action = bindings[event.code];
+  if (
+    !action ||
+    editing(event.target) ||
+    event.ctrlKey ||
+    event.metaKey ||
+    event.altKey ||
+    !controllable() ||
+    busy
+  )
+    return;
+  event.preventDefault();
+  if (event.repeat || held.has(event.code)) return;
+  held.set(event.code, action);
+  showHeld();
+  void pumpMotion();
+});
+window.addEventListener("keyup", (event) => {
+  held.delete(event.code);
+  showHeld();
+});
+window.addEventListener("blur", releaseControls);
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) releaseControls();
+});
+document.addEventListener("focusin", (event) => {
+  if (editing(event.target)) releaseControls();
+});
 btn("pause").onclick = () =>
   void act(async () => {
     await command(paused ? "resume" : "pause");
