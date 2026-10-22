@@ -13,9 +13,9 @@ IntrinsicsContract = Literal["native", "osp_v2_to_osp_v1_legacy"]
 _DL3DV_RECORD_RETRY_SEED_TAG = 0x44525259
 OSP_V2_TO_OSP_V1_LEGACY_K_SCALE = (504.0/640.0, 308.0/384.0, 504.0/640.0, 308.0/384.0)
 
-class OSPFeatureDataset(Dataset):
+class WorldCrafterDataset(Dataset):
     """
-    Explicit LagerNVS-memory sample dataset for Helios + UCPE training.
+    Dataset of video latents, captions and cameras for WorldCrafter fine-tuning.
 
     The loader returns only clean source/current/tail latents and untouched
     camera metadata.  It never constructs Helios memory4: the frozen

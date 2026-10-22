@@ -29,7 +29,7 @@
 
 ## 🔆 Introduction
 
-- **[2026-10-22]**: Release [fine-tuning code](docs/finetuning.md) for **WorldCrafter-Base**.
+- **[2026-10-22]**: Release [fine-tuning code](training/README.md) for **WorldCrafter-Base**.
 - **[2026-10-22]**: Release a [high-quality subset](https://huggingface.co/datasets/Drexubery/WorldCrafter) of WorldCrafter's open-domain training data: long videos with camera annotations and captions.
 - **[2026-10-22]**: Add WorldCrafter-Fast inference with [Reactor Runtime](reactor/README.md).
 
@@ -191,22 +191,13 @@ and deployment options.
 
 ## 🚀 Training
 
-We provide training code to **fine-tune WorldCrafter-Base** on the
-[WorldCrafter dataset](https://huggingface.co/datasets/Drexubery/WorldCrafter)
-or your own captioned videos with camera annotations.
+We release the complete data preparation and fine-tuning pipeline for **WorldCrafter-Base**.
+Download the **[WorldCrafter dataset](https://huggingface.co/datasets/Drexubery/WorldCrafter)**,
+encode its videos and captions, and fine-tune our model. The same tools support your own
+captioned videos, with optional camera estimation using Depth Anything 3.
 
-See the **[fine-tuning guide](docs/finetuning.md)** for environment setup,
-training, checkpoint resume and model export, and the
-**[data preparation guide](docs/data_preparation.md)** for video latents,
-caption embeddings and camera estimation with Depth Anything 3.
-
-After preparing the environment, model weights and data:
-
-```bash
-NPROC_PER_NODE=8 bash scripts/training/finetune_base.sh \
-  --gradient-accumulation-steps 4 --max-steps 500 \
-  --output-dir outputs/base-osp-v2
-```
+See **[Training: data preparation, fine-tuning and inference](training/README.md)**
+for the complete workflow.
 
 ## 📝 Citation
 

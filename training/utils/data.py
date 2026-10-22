@@ -222,7 +222,8 @@ def read_cut_crop_and_resize(
     import av
     wanted = set(frame_indices)
     decoded = []
-    with av.open(str(video_path)) as container:
+    # Video tags may contain non-UTF-8 bytes; they are not used for pixels or captions.
+    with av.open(str(video_path), metadata_errors="replace") as container:
         for index, frame in enumerate(container.decode(video=0)):
             if index in wanted:
                 decoded.append(frame.to_ndarray(format="rgb24"))
@@ -230,6 +231,10 @@ def read_cut_crop_and_resize(
                 break
     if len(decoded) != f_prime:
         raise ValueError(f"Decoded {len(decoded)} of {f_prime} requested frames: {video_path}")
+    s_x, e_x, s_y, e_y = crop
+    height, width = decoded[0].shape[:2]
+    if not (0 <= s_x < e_x <= width and 0 <= s_y < e_y <= height):
+        raise ValueError(f'Crop {crop} is outside video dimensions {width}x{height}')
     frames = torch.from_numpy(np.stack(decoded)).float()
 
     frames = (frames / 127.5) - 1

@@ -11,7 +11,7 @@ from accelerate.utils import DistributedDataParallelKwargs, set_seed, broadcast
 from torch.utils.data import DataLoader, DistributedSampler
 from worldcrafter.repencoder import RepEncoder
 from .utils.checkpoint import fingerprint, save_checkpoint, load_checkpoint
-from .dataset import OSPFeatureDataset
+from .dataset import WorldCrafterDataset
 from .model import load_base, EXPECTED_GROUPS
 from .utils.checkpoint import write_rank_record, verify_parameter_probes
 from .utils.loss import flow_loss, make_scheduler, sample_sequential_history_mode
@@ -36,7 +36,7 @@ def build_dataset(config):
     missing = [path for path in files if not Path(path).is_file()]
     if missing:
         raise FileNotFoundError(f'{len(missing)} features missing; first: {missing[0]}')
-    dataset = OSPFeatureDataset(root, feature_files=files, valid_chunk_indices_json=index_path,
+    dataset = WorldCrafterDataset(root, feature_files=files, valid_chunk_indices_json=index_path,
                                dataset_source_name='osp_istock_v2', max_chunk_delta_t=10.0,
                                intrinsics_contract=config['intrinsics_contract'], seed=config['seed'])
     return dataset, fingerprint({name: valid[name] for name in names})

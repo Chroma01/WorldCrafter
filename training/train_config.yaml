@@ -1,11 +1,11 @@
-# Stage-1 continuation of released Base: existing rank-128 LoRA + UCPE only.
+# Fine-tune Base: existing rank-128 low-rank adapters and camera-conditioning adapters.
 model_path: weights/WorldCrafter-Base
 feature_root: data/WorldCrafter/features
-valid_chunks: data/WorldCrafter/metadata/valid_chunk_indices.json
+valid_chunks: data/WorldCrafter/valid_chunk_indices.json
 pool: null
 output_dir: outputs/finetune-base
 seed: 43
-# OSP-v2 stores correctly normalized K; do not silently apply the OSP-v1 legacy scale.
+# Use intrinsics normalized by the camera estimator's processed image dimensions.
 intrinsics_contract: native
 learning_rate: 3.0e-5
 # Reference: 32 processes x accumulation 1; use accumulation 4 with eight GPUs.

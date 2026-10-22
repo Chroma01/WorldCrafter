@@ -8,12 +8,12 @@ import unittest
 import numpy as np
 import torch
 from types import SimpleNamespace
-from worldcrafter.training.utils.inputs import sample_sequential_history_mode, build_helios_random_chunk_training_inputs
-from worldcrafter.training.utils.loss import prepare_stage1_noise_input
-from worldcrafter.training.utils.loss import make_scheduler
-from worldcrafter.training.utils.camera import compute_fov_from_fx_xi
-from worldcrafter.training.dataset import OSPFeatureDataset
-from worldcrafter.training.utils.sampling import eligible_target_chunks
+from training.utils.inputs import sample_sequential_history_mode, build_helios_random_chunk_training_inputs
+from training.utils.loss import prepare_stage1_noise_input
+from training.utils.loss import make_scheduler
+from training.utils.camera import compute_fov_from_fx_xi
+from training.dataset import WorldCrafterDataset
+from training.utils.sampling import eligible_target_chunks
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -45,7 +45,7 @@ class TrainingTests(unittest.TestCase):
         history = torch.randn(1, 16, 7, 48, 80)
         x0 = torch.randn(1, 16, 1, 48, 80)
         original = history.clone()
-        config = json.loads((ROOT / 'worldcrafter/training/utils/reference_noise.json').read_text())
+        config = json.loads((ROOT / 'training/utils/reference_noise.json').read_text())
         for mode in ('t2v', 'v2v', 'none'):
             clean = build_helios_random_chunk_training_inputs(target, history, x0, forced_drop_mode=mode, dtype=torch.float32)
             if mode == 't2v':
@@ -65,7 +65,7 @@ class TrainingTests(unittest.TestCase):
             feature = feature_fixture()
             torch.save(feature, root / 'sample.pt')
             (root / 'valid.json').write_text(json.dumps({'valid_chunk_indices': {'sample.pt': [2]}}))
-            data = OSPFeatureDataset(root, feature_files=[str(root / 'sample.pt')],
+            data = WorldCrafterDataset(root, feature_files=[str(root / 'sample.pt')],
                 valid_chunk_indices_json=root / 'valid.json', dataset_source_name='osp_istock_v2', intrinsics_contract='native')
             sample = data[0]
             self.assertEqual(sample['target_chunk_index'], 2)
@@ -79,7 +79,7 @@ class TrainingTests(unittest.TestCase):
             self.assertEqual(eligible_target_chunks(feature, [2]), ())
 
     def test_pose_conversion_and_intrinsics(self):
-        spec = importlib.util.spec_from_file_location('prepare_features', ROOT / 'tools/data/prepare_features.py')
+        spec = importlib.util.spec_from_file_location('prepare_features', ROOT / 'training/utils/pose_estimation.py')
         module = importlib.util.module_from_spec(spec); spec.loader.exec_module(module)
         w2c = np.eye(4)[None].repeat(2, 0)
         w2c[1, 0, 3] = -2

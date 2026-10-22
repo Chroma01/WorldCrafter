@@ -45,8 +45,9 @@ py-modules = ["inference"]
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["worldcrafter*", "demo*"]
+include = ["worldcrafter*", "training*", "demo*"]
 
 [tool.setuptools.package-data]
-worldcrafter = ["prompts/*.txt", "training/*.yaml", "training/utils/*.json"]
+worldcrafter = ["prompts/*.txt"]
+training = ["*.yaml", "utils/*.json"]
 demo = ["static/*", "configs/*.json", "inputs/*/*.png"]
