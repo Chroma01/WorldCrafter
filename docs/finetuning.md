@@ -169,21 +169,3 @@ before moving or publishing it. Export refuses to overwrite an existing director
 Allow space for an additional full transformer copy when exporting. Check the
 container's storage quota as well as filesystem free space; the latter can exceed
 the per-container quota.
-
-## Verification scope
-
-The integration check on one H20 executed all three history modes, saved a
-three-step checkpoint, resumed it for step four, and generated a decodable
-33-frame 640x384 video using the resulting adapters and the frozen Base
-transformer. Preparing a real captioned video with DA3 and encoding a released
-video while reusing its camera JSON were also checked.
-
-A single-node check on eight H200 GPUs used 64 original OSP-v2 feature files,
-with gradient accumulation of four (effective batch 32). It trained four steps
-and resumed all eight ranks to step six, covering all three history modes with
-finite losses. Per-step sample uniqueness, trainable-parameter probes across
-ranks and resume, and complete rank-local checkpoint state were verified.
-Parameter probes sample each trainable tensor; they do not prove full-weight
-equality. These are pipeline checks;
-the full dataset training run, multi-node DDP and fine-tuned model quality have
-not been evaluated by these checks.
