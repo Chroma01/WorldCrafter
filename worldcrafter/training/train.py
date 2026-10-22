@@ -53,7 +53,7 @@ def select_history_mode(accelerator, forced=None):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--config', default='configs/training/base_osp_v2.yaml')
+    parser.add_argument('--config', default='scripts/training/base_osp_v2.yaml')
     parser.add_argument('--model-path')
     parser.add_argument('--feature-root')
     parser.add_argument('--valid-chunks')

@@ -25,6 +25,5 @@ dist/
 
 # Downloaded training data and generated features
 /data/WorldCrafter/
-/data/osp_v2/features/
 /data/custom/
 /data/caption_embeddings/

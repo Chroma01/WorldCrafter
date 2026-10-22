@@ -40,8 +40,8 @@ reference shift-5 scheduler; dynamic shifting is disabled during training.
 From the repository root:
 
 ```bash
-uv sync --project training_env --frozen
-source training_env/.venv/bin/activate
+uv sync --project uvenv/training --frozen
+source uvenv/training/.venv/bin/activate
 ```
 
 For network-mounted repositories, set `UV_PROJECT_ENVIRONMENT` and `UV_CACHE_DIR`
@@ -62,15 +62,15 @@ scheduler and RepEncoder; Fast's transformer and adapters are not used.
 Download the video and camera-JSON release from
 [Hugging Face](https://huggingface.co/datasets/Drexubery/WorldCrafter), then follow
 the [data preparation guide](data_preparation.md) to encode complete `.pt` features
-locally into `data/osp_v2/features/`. Precomputed `.pt` files are not distributed.
-The supplied camera annotations can be reused without rerunning DA3. The included
-[`valid_chunk_indices.json`](../data/osp_v2/valid_chunk_indices.json) identifies the
-20,434-record OSP-v2 subset, corresponding to 19,972 unique source videos.
+locally into `data/WorldCrafter/features/`. Precomputed `.pt` files are not distributed.
+The supplied camera annotations can be reused without rerunning DA3. The downloaded
+`metadata/valid_chunk_indices.json` identifies the 20,434-record OSP-v2 subset,
+corresponding to 19,972 unique source videos.
 Alternatively, prepare your own captioned videos and build a matching index.
 
 ```bash
-python train.py --feature-root data/osp_v2/features \
-  --valid-chunks data/osp_v2/valid_chunk_indices.json --check-data
+python train.py --feature-root data/WorldCrafter/features \
+  --valid-chunks data/WorldCrafter/metadata/valid_chunk_indices.json --check-data
 ```
 
 Only local filesystem inputs are supported. Use trusted `.pt` files: the original
@@ -82,6 +82,20 @@ The published index is an all-training pool, with no held-out evaluation claim.
 To create an independent evaluation set, split by original video identity, keeping
 all cuts from one video in the same split. `--pool` accepts a text file with one
 feature **basename** per line, restricted to the valid index.
+
+### Dataset and DataLoader
+
+[`OSPFeatureDataset`](../worldcrafter/training/dataset.py) reads the prepared
+`.pt` files containing video latents, caption embeddings and camera annotations.
+It selects eligible target chunks from the downloaded index and samples preceding
+views for causal memory, while keeping each video's complete feature history.
+Raw videos are encoded offline using the [data preparation tools](data_preparation.md).
+
+The [training entry point](../worldcrafter/training/train.py) constructs a PyTorch
+`DataLoader` with a `DistributedSampler` for rank-wise data allocation and epoch
+shuffling. It uses batch size one per GPU, gradient accumulation, and
+`num_workers=0` to preserve deterministic sampling on checkpoint resume.
+The dataset and loader are included in the eight-H200 training/resume check.
 
 ## Launch and resume
 

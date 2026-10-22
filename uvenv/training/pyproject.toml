@@ -9,4 +9,4 @@ index-strategy = "unsafe-best-match"
 name = "pytorch-cu128"
 url = "https://download.pytorch.org/whl/cu128"
 [tool.uv.sources]
-worldcrafter = { path = "..", editable = true }
+worldcrafter = { path = "../..", editable = true }

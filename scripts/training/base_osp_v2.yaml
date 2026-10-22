@@ -1,7 +1,7 @@
 # Stage-1 continuation of released Base: existing rank-128 LoRA + UCPE only.
 model_path: weights/WorldCrafter-Base
-feature_root: data/osp_v2/features
-valid_chunks: data/osp_v2/valid_chunk_indices.json
+feature_root: data/WorldCrafter/features
+valid_chunks: data/WorldCrafter/metadata/valid_chunk_indices.json
 pool: null
 output_dir: outputs/finetune-base
 seed: 43

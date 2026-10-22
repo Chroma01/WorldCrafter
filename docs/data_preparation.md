@@ -21,9 +21,9 @@ download, extract and encode the release:
 python tools/data/download_dataset.py --root data/WorldCrafter --download --verify --extract
 python tools/data/encode_released_dataset.py \
   --dataset-root data/WorldCrafter --model-path weights/WorldCrafter-Base \
-  --output data/osp_v2/features
-python train.py --feature-root data/osp_v2/features \
-  --valid-chunks data/osp_v2/valid_chunk_indices.json --check-data
+  --output data/WorldCrafter/features
+python train.py --feature-root data/WorldCrafter/features \
+  --valid-chunks data/WorldCrafter/metadata/valid_chunk_indices.json --check-data
 ```
 
 This path does not load or run DA3. It reuses the released poses, intrinsics and
@@ -74,11 +74,11 @@ First install the [training environment](finetuning.md#environment-and-models).
 DA3 runs in a separate Python process so its dependencies cannot alter training:
 
 ```bash
-uv sync --project data_env --frozen
+uv sync --project uvenv/data --frozen
 ```
 
 The DA3 environment pins the [official source](https://github.com/ByteDance-Seed/Depth-Anything-3)
-to the revision recorded in `data_env/pyproject.toml` and `uv.lock`. Use the
+to the revision recorded in `uvenv/data/pyproject.toml` and `uv.lock`. Use the
 `DA3NESTED-GIANT-LARGE-1.1` model matching the historical pipeline, downloaded to a
 local directory from its official model repository. Record the model revision and
 hashes alongside any newly prepared dataset.
@@ -92,7 +92,7 @@ python tools/data/prepare_features.py \
   --source-json data/source.json \
   --pretrained-model-name-or-path weights/WorldCrafter-Base \
   --da3-model-dir /path/to/DA3NESTED-GIANT-LARGE-1.1 \
-  --da3-python data_env/.venv/bin/python \
+  --da3-python uvenv/data/.venv/bin/python \
   --output-latent-dir data/custom/features \
   --output-camera-json-dir data/custom/cameras \
   --tmp-dir /path/to/local-ssd/worldcrafter-precompute \
@@ -161,8 +161,8 @@ selection with this custom-data tool.
 ## Lossless feature distribution
 
 ```bash
-python tools/data/pack_features.py --feature-root data/osp_v2/features \
-  --valid-chunks data/osp_v2/valid_chunk_indices.json \
+python tools/data/pack_features.py --feature-root data/WorldCrafter/features \
+  --valid-chunks data/WorldCrafter/metadata/valid_chunk_indices.json \
   --output /path/to/new-release-directory --shard-gib 2
 ```
 
