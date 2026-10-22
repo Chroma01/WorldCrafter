@@ -1,0 +1,8 @@
+__pycache__/
+.pytest_cache/
+*.pyc
+output/
+weights/
+.env
+demo/node_modules/
+demo/dist/
