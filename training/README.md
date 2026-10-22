@@ -33,8 +33,9 @@ training with PyTorch DDP.
 
 ## Download the WorldCrafter dataset
 
-The dataset provides high-quality long videos with captions and camera annotations.
-Complete the academic research agreement on the dataset page, then log in locally:
+The **[WorldCrafter dataset](https://huggingface.co/datasets/Drexubery/WorldCrafter)**
+provides high-quality long videos with captions and camera annotations. Complete the
+academic research agreement on the dataset page, then log in locally:
 
 ```bash
 hf auth login
