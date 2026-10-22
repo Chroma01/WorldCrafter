@@ -188,6 +188,25 @@ One GPU is used by default; use `--devices` for multi-GPU inference.
 See the [demo guide](demo/README.md) for multi-GPU setup, camera controls,
 and deployment options.
 
+## 🚀 Training
+
+We provide training code to **fine-tune WorldCrafter-Base** on the
+[WorldCrafter dataset](https://huggingface.co/datasets/Drexubery/WorldCrafter)
+or your own captioned videos with camera annotations.
+
+See the **[fine-tuning guide](docs/finetuning.md)** for environment setup,
+training, checkpoint resume and model export, and the
+**[data preparation guide](docs/data_preparation.md)** for video latents,
+caption embeddings and camera estimation with Depth Anything 3.
+
+After preparing the environment, model weights and data:
+
+```bash
+NPROC_PER_NODE=8 bash scripts/training/finetune_base.sh \
+  --gradient-accumulation-steps 4 --max-steps 500 \
+  --output-dir outputs/base-osp-v2
+```
+
 ## 📝 Citation
 
 If you find WorldCrafter useful in your research, please cite:

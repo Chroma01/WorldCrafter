@@ -1,0 +1,15 @@
+# Stage-1 continuation of released Base: existing rank-128 LoRA + UCPE only.
+model_path: weights/WorldCrafter-Base
+feature_root: data/osp_v2/features
+valid_chunks: data/osp_v2/valid_chunk_indices.json
+pool: null
+output_dir: outputs/finetune-base
+seed: 43
+# OSP-v2 stores correctly normalized K; do not silently apply the OSP-v1 legacy scale.
+intrinsics_contract: native
+learning_rate: 3.0e-5
+# Reference: 32 processes x accumulation 1; use accumulation 4 with eight GPUs.
+gradient_accumulation_steps: 1
+max_steps: 1000000
+checkpoint_every: 500
+checkpoint_at_step_zero: true

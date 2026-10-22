@@ -33,6 +33,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+train = ["PyYAML>=6,<7", "av>=14,<17"]
 xformers = ["xformers==0.0.35"]
 demo = ["fastapi==0.116.1", "starlette==0.47.3", "uvicorn==0.35.0", "websockets==15.0.1"]
 
@@ -47,5 +48,5 @@ where = ["."]
 include = ["worldcrafter*", "demo*"]
 
 [tool.setuptools.package-data]
-worldcrafter = ["prompts/*.txt"]
+worldcrafter = ["prompts/*.txt", "training/*.json"]
 demo = ["static/*", "configs/*.json", "inputs/*/*.png"]

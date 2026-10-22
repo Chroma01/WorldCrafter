@@ -1,0 +1,12 @@
+[project]
+name = "worldcrafter-training-runtime"
+version = "0.1.0"
+requires-python = ">=3.11,<3.12"
+dependencies = ["worldcrafter[train]", "torch==2.10.0+cu128", "torchvision==0.25.0+cu128"]
+[tool.uv]
+index-strategy = "unsafe-best-match"
+[[tool.uv.index]]
+name = "pytorch-cu128"
+url = "https://download.pytorch.org/whl/cu128"
+[tool.uv.sources]
+worldcrafter = { path = "..", editable = true }
