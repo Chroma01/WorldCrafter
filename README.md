@@ -29,6 +29,7 @@
 
 ## 🔆 Introduction
 
+- **[2026-10-22]**: Release a [high-quality subset](https://huggingface.co/datasets/Drexubery/WorldCrafter) of WorldCrafter's open-domain training data: long videos with camera annotations and captions.
 - **[2026-10-22]**: Add WorldCrafter-Fast inference with [Reactor Runtime](reactor/README.md).
 
 WorldCrafter enables consistent, camera-controlled scene exploration from an image or text prompt. Its camera-queryable implicit 3D-aware memory preserves scene information across viewpoints and over long horizons.
