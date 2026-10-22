@@ -29,6 +29,7 @@
 
 ## 🔆 Introduction
 
+- **[2026-10-22]**: Release [fine-tuning code](docs/finetuning.md) for **WorldCrafter-Base**.
 - **[2026-10-22]**: Release a [high-quality subset](https://huggingface.co/datasets/Drexubery/WorldCrafter) of WorldCrafter's open-domain training data: long videos with camera annotations and captions.
 - **[2026-10-22]**: Add WorldCrafter-Fast inference with [Reactor Runtime](reactor/README.md).
 
