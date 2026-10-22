@@ -600,7 +600,7 @@ def relative_per_chunk(c2w_chunked: np.ndarray) -> np.ndarray:
 
 
 def read_processed_single_frame(sample: dict, raw_frame_idx: int) -> torch.Tensor:
-    from worldcrafter.training.video import read_cut_crop_and_resize
+    from worldcrafter.training.utils.data import read_cut_crop_and_resize
 
     return read_cut_crop_and_resize(
         video_path=sample["video_path"],
@@ -797,8 +797,8 @@ def retry_candidates(primary_sample, sample_pool, max_retries):
 
 def encode_and_save_bucket(samples, runtime, args, da3_client: PersistentDA3Client | None, sample_pool=None):
     import torchvision.transforms as transforms
-    from worldcrafter.training.video import read_cut_crop_and_resize
-    from worldcrafter.training.text import encode_prompt
+    from worldcrafter.training.utils.data import read_cut_crop_and_resize
+    from worldcrafter.training.utils.data import encode_prompt
 
     if not samples:
         return {"saved": 0, "saved_camera_json": 0, "skipped_existing": 0, "failed": 0}
@@ -1041,7 +1041,7 @@ def build_sample_info_from_osp_item(
     single_width: int,
     min_bucket_frames: int,
 ):
-    from worldcrafter.training.video import find_nearest_length_bucket, find_nearest_resolution_bucket
+    from worldcrafter.training.utils.data import find_nearest_length_bucket, find_nearest_resolution_bucket
 
     try:
         cut_start_frame, cut_end_frame = item["cut"]

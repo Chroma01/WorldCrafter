@@ -8,12 +8,12 @@ import unittest
 import numpy as np
 import torch
 from types import SimpleNamespace
-from worldcrafter.training.random_chunk_inputs import sample_sequential_history_mode, build_helios_random_chunk_training_inputs
-from worldcrafter.training.noise import prepare_stage1_noise_input
-from worldcrafter.training.objective import make_scheduler
-from worldcrafter.training.camera_geometry import compute_fov_from_fx_xi
+from worldcrafter.training.utils.inputs import sample_sequential_history_mode, build_helios_random_chunk_training_inputs
+from worldcrafter.training.utils.loss import prepare_stage1_noise_input
+from worldcrafter.training.utils.loss import make_scheduler
+from worldcrafter.training.utils.camera import compute_fov_from_fx_xi
 from worldcrafter.training.dataset import OSPFeatureDataset
-from worldcrafter.training.lagernvs_native.osp_latent_9x9_sampler import eligible_target_chunks
+from worldcrafter.training.utils.sampling import eligible_target_chunks
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -45,7 +45,7 @@ class TrainingTests(unittest.TestCase):
         history = torch.randn(1, 16, 7, 48, 80)
         x0 = torch.randn(1, 16, 1, 48, 80)
         original = history.clone()
-        config = json.loads((ROOT / 'worldcrafter/training/reference_noise.json').read_text())
+        config = json.loads((ROOT / 'worldcrafter/training/utils/reference_noise.json').read_text())
         for mode in ('t2v', 'v2v', 'none'):
             clean = build_helios_random_chunk_training_inputs(target, history, x0, forced_drop_mode=mode, dtype=torch.float32)
             if mode == 't2v':

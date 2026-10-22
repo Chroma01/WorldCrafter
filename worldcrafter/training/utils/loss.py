@@ -1,8 +1,134 @@
-"""Reference Stage-1 corruption and flow noising; operation order is preserved."""
+"""Flow-matching schedule, corruption and training objective."""
+
+import torch
+import math
 import json
 import random
-import torch
 import torch.nn.functional as F
+from pathlib import Path
+from types import SimpleNamespace
+from .inputs import build_helios_random_chunk_training_inputs
+from .inputs import sample_sequential_history_mode
+from .camera import build_ucpe_attention_kwargs_for_chunk
+
+
+class FlowMatchScheduler():
+
+    def __init__(
+        self,
+        num_inference_steps=100,
+        num_train_timesteps=1000,
+        shift=3.0,
+        sigma_max=1.0,
+        sigma_min=0.003/1.002,
+        inverse_timesteps=False,
+        extra_one_step=False,
+        reverse_sigmas=False,
+        exponential_shift=False,
+        exponential_shift_mu=None,
+        shift_terminal=None,
+    ):
+        self.num_train_timesteps = num_train_timesteps
+        self.shift = shift
+        self.sigma_max = sigma_max
+        self.sigma_min = sigma_min
+        self.inverse_timesteps = inverse_timesteps
+        self.extra_one_step = extra_one_step
+        self.reverse_sigmas = reverse_sigmas
+        self.exponential_shift = exponential_shift
+        self.exponential_shift_mu = exponential_shift_mu
+        self.shift_terminal = shift_terminal
+        self.set_timesteps(num_inference_steps)
+
+
+    def set_timesteps(self, num_inference_steps=100, denoising_strength=1.0, training=False, shift=None, dynamic_shift_len=None):
+        if shift is not None:
+            self.shift = shift
+        sigma_start = self.sigma_min + (self.sigma_max - self.sigma_min) * denoising_strength
+        if self.extra_one_step:
+            self.sigmas = torch.linspace(sigma_start, self.sigma_min, num_inference_steps + 1)[:-1]
+        else:
+            self.sigmas = torch.linspace(sigma_start, self.sigma_min, num_inference_steps)
+        if self.inverse_timesteps:
+            self.sigmas = torch.flip(self.sigmas, dims=[0])
+        if self.exponential_shift:
+            mu = self.calculate_shift(dynamic_shift_len) if dynamic_shift_len is not None else self.exponential_shift_mu
+            self.sigmas = math.exp(mu) / (math.exp(mu) + (1 / self.sigmas - 1))
+        else:
+            self.sigmas = self.shift * self.sigmas / (1 + (self.shift - 1) * self.sigmas)
+        if self.shift_terminal is not None:
+            one_minus_z = 1 - self.sigmas
+            scale_factor = one_minus_z[-1] / (1 - self.shift_terminal)
+            self.sigmas = 1 - (one_minus_z / scale_factor)
+        if self.reverse_sigmas:
+            self.sigmas = 1 - self.sigmas
+        self.timesteps = self.sigmas * self.num_train_timesteps
+        if training:
+            x = self.timesteps
+            y = torch.exp(-2 * ((x - num_inference_steps / 2) / num_inference_steps) ** 2)
+            y_shifted = y - y.min()
+            bsmntw_weighing = y_shifted * (num_inference_steps / y_shifted.sum())
+            self.linear_timesteps_weights = bsmntw_weighing
+            self.training = True
+        else:
+            self.training = False
+
+
+    def step(self, model_output, timestep, sample, to_final=False, **kwargs):
+        if isinstance(timestep, torch.Tensor):
+            timestep = timestep.cpu()
+        timestep_id = torch.argmin((self.timesteps - timestep).abs())
+        sigma = self.sigmas[timestep_id]
+        if to_final or timestep_id + 1 >= len(self.timesteps):
+            sigma_ = 1 if (self.inverse_timesteps or self.reverse_sigmas) else 0
+        else:
+            sigma_ = self.sigmas[timestep_id + 1]
+        prev_sample = sample + model_output * (sigma_ - sigma)
+        return prev_sample
+
+
+    def return_to_timestep(self, timestep, sample, sample_stablized):
+        if isinstance(timestep, torch.Tensor):
+            timestep = timestep.cpu()
+        timestep_id = torch.argmin((self.timesteps - timestep).abs())
+        sigma = self.sigmas[timestep_id]
+        model_output = (sample - sample_stablized) / sigma
+        return model_output
+
+
+    def add_noise(self, original_samples, noise, timestep):
+        if isinstance(timestep, torch.Tensor):
+            timestep = timestep.cpu()
+        timestep_id = torch.argmin((self.timesteps - timestep).abs())
+        sigma = self.sigmas[timestep_id]
+        sample = (1 - sigma) * original_samples + sigma * noise
+        return sample
+
+
+    def training_target(self, sample, noise, timestep):
+        target = noise - sample
+        return target
+
+
+    def training_weight(self, timestep):
+        timestep_id = torch.argmin((self.timesteps - timestep.to(self.timesteps.device)).abs())
+        weights = self.linear_timesteps_weights[timestep_id]
+        return weights
+
+
+    def calculate_shift(
+        self,
+        image_seq_len,
+        base_seq_len: int = 256,
+        max_seq_len: int = 8192,
+        base_shift: float = 0.5,
+        max_shift: float = 0.9,
+    ):
+        m = (max_shift - base_shift) / (max_seq_len - base_seq_len)
+        b = base_shift - m * base_seq_len
+        mu = image_seq_len * m + b
+        return mu
+
 
 def downsample_corrupt(model_input, downsample_min_corrupt_ratio, downsample_max_corrupt_ratio):
     corrupt_ratio = random.uniform(downsample_min_corrupt_ratio, downsample_max_corrupt_ratio)
@@ -682,3 +808,64 @@ def prepare_stage1_noise_input(
         latents_history_long,
         use_clean_input,
     )
+
+
+def make_scheduler():
+    scheduler = FlowMatchScheduler(shift=5, sigma_min=0.0, extra_one_step=True)
+    scheduler.set_timesteps(1000, training=True)
+    return scheduler
+
+
+def prepare_inputs(batch, repencoder, mode, device, *, audit_step=None):
+    dtype = torch.bfloat16
+    target = batch['input_latents'].to(device=device, dtype=dtype)
+    if tuple(target.shape[1:]) != (16, 9, 48, 80):
+        raise ValueError(f'Expected [B,16,9,48,80], got {tuple(target.shape)}')
+    if mode == 'none':
+        source = batch['lagernvs_source_latents'].to(device=device, dtype=dtype)
+        with torch.no_grad():
+            memory = repencoder(
+                source_latents=source.permute(0, 2, 1, 3, 4).contiguous(),
+                source_c2w_metric=batch['lagernvs_source_c2w_metric'].to(device=device, dtype=torch.float32),
+                target_c2w_metric=batch['lagernvs_target_c2w_metric'].to(device=device, dtype=torch.float32),
+                near_zero_baseline_m=float(batch['lagernvs_near_zero_baseline_m'][0]),
+            ).detach().to(dtype)
+        if tuple(memory.shape) != (target.shape[0], 16, 4, 48, 80) or not torch.isfinite(memory).all():
+            raise RuntimeError('Invalid frozen RepEncoder memory4')
+    else:
+        memory = target.new_zeros(target.shape[0], 16, 4, 48, 80)
+    history = torch.cat([memory, batch['helios_history_tail_latents'].to(device=device, dtype=dtype)], dim=2)
+    clean = build_helios_random_chunk_training_inputs(
+        input_latents=target, history_latents=history,
+        x0_latents=batch['x0_latents'].to(device=device, dtype=dtype),
+        num_latent_frames_per_chunk=9, memory_size=4, history_sizes=(2, 1),
+        is_keep_x0=True, is_random_drop=False, forced_drop_mode=mode, dtype=dtype, device=device,
+    )
+    return clean
+
+
+def flow_loss(model, unwrapped, repencoder, scheduler, batch, mode, device, step):
+    clean = prepare_inputs(batch, repencoder, mode, device)
+    args = SimpleNamespace(training_config=SimpleNamespace(**json.loads(
+        Path(__file__).with_name('reference_noise.json').read_text())))
+    noisy, _, timesteps, targets, short, mid, long, _ = prepare_stage1_noise_input(
+        args=args, model_input=clean['input_latents'], noise_scheduler=scheduler,
+        latents_history_short=clean['latents_history_short'],
+        latents_history_mid=clean['latents_history_mid'], latents_history_long=clean['latents_history_long'],
+        latent_window_size=9, is_keep_x0=True, saturation_audit_step=step if step <= 3 else None,
+    )
+    cameras = {key: batch[key].to(device=device, dtype=torch.float32) for key in ('pose', 'x_fov', 'xi')}
+    attention_kwargs = build_ucpe_attention_kwargs_for_chunk(
+        transformer=unwrapped, camera_control_panshot=cameras, height=384, width=640,
+        num_latent_frames_per_chunk=9, chunk_index=0, vae_scale_factor_temporal=4,
+        restart_each_chunk=False, translation_scale=1.0, pose_is_chunk_aligned=True,
+    )
+    pred = model(hidden_states=noisy[0], timestep=timesteps[0],
+                 encoder_hidden_states=batch['context'].to(device=device, dtype=torch.bfloat16),
+                 indices_hidden_states=clean['indices_hidden_states'],
+                 indices_latents_history_short=clean['indices_latents_history_short'],
+                 indices_latents_history_mid=clean['indices_latents_history_mid'],
+                 indices_latents_history_long=clean['indices_latents_history_long'],
+                 latents_history_short=short, latents_history_mid=mid, latents_history_long=long,
+                 attention_kwargs=attention_kwargs, return_dict=False)[0]
+    return F.mse_loss(pred.float(), targets[0].float()) * scheduler.training_weight(timesteps[0]).to(device)

@@ -10,11 +10,11 @@ from accelerate import Accelerator
 from accelerate.utils import DistributedDataParallelKwargs, set_seed, broadcast
 from torch.utils.data import DataLoader, DistributedSampler
 from worldcrafter.repencoder import RepEncoder
-from .checkpoint import fingerprint, save_checkpoint, load_checkpoint
+from .utils.checkpoint import fingerprint, save_checkpoint, load_checkpoint
 from .dataset import OSPFeatureDataset
 from .model import load_base, EXPECTED_GROUPS
-from .distributed_audit import write_rank_record, verify_parameter_probes
-from .objective import flow_loss, make_scheduler, sample_sequential_history_mode
+from .utils.checkpoint import write_rank_record, verify_parameter_probes
+from .utils.loss import flow_loss, make_scheduler, sample_sequential_history_mode
 
 
 def build_dataset(config):
@@ -53,7 +53,7 @@ def select_history_mode(accelerator, forced=None):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--config', default='scripts/training/base_osp_v2.yaml')
+    parser.add_argument('--config', default=str(Path(__file__).with_name('train_config.yaml')))
     parser.add_argument('--model-path')
     parser.add_argument('--feature-root')
     parser.add_argument('--valid-chunks')

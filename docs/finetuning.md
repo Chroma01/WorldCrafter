@@ -5,6 +5,20 @@ existing caption embeddings and Depth Anything 3 (DA3) camera estimates. This
 Stage-1 flow-matching recipe fine-tunes Base; training or distilling WorldCrafter-Fast
 is outside its scope. See [data preparation](data_preparation.md).
 
+## Code layout
+
+```text
+worldcrafter/training/
+├── train.py           # DataLoader, distributed training and resume
+├── train_config.yaml  # Training configuration
+├── dataset.py         # Feature loading and target/history sampling
+├── model.py           # Base initialization and trainable adapters
+└── utils/             # Camera, sampling, inputs, loss, data and checkpoints
+```
+
+Edit [`train_config.yaml`](../worldcrafter/training/train_config.yaml) or override
+its settings with command-line arguments. The launcher uses this config by default.
+
 ## What is trained
 
 | Component | State |
@@ -28,7 +42,7 @@ History mode sampling is sequential: `t2v=0.4`, then `v2v=0.4` conditional on no
 selecting t2v. The effective probabilities are **40% t2v, 24% v2v, 36% full**.
 The mode is synchronized across ranks and held for an accumulated optimizer step.
 Corruption and saturation retain the reference operation order and constants in
-[`reference_noise.json`](../worldcrafter/training/reference_noise.json).
+[`reference_noise.json`](../worldcrafter/training/utils/reference_noise.json).
 
 The reference optimizer is AdamW, LR `3e-5` (constant), betas `(0.9,0.999)`,
 epsilon `1e-8`, weight decay `0.01`, no gradient clipping, bf16 compute with fp32

@@ -12,8 +12,8 @@ from diffusers import AutoencoderKLWan
 from transformers import AutoTokenizer, UMT5EncoderModel
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
-from worldcrafter.training.video import read_cut_crop_and_resize
-from worldcrafter.training.text import encode_prompt
+from worldcrafter.training.utils.data import read_cut_crop_and_resize
+from worldcrafter.training.utils.data import encode_prompt
 
 
 def inside(root, path):

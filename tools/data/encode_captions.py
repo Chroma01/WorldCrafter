@@ -7,7 +7,7 @@ import sys
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 import torch
 from transformers import AutoTokenizer, UMT5EncoderModel
-from worldcrafter.training.text import encode_prompt
+from worldcrafter.training.utils.data import encode_prompt
 
 
 def main():
