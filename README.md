@@ -29,6 +29,8 @@
 
 ## 🔆 Introduction
 
+- **[2026-10-22]**: Add WorldCrafter-Fast inference with [Reactor Runtime](reactor/README.md).
+
 WorldCrafter enables consistent, camera-controlled scene exploration from an image or text prompt. Its camera-queryable implicit 3D-aware memory preserves scene information across viewpoints and over long horizons.
 
 We provide **[WorldCrafter-Base](https://huggingface.co/TencentARC/WorldCrafter-Base)** and **[WorldCrafter-Fast](https://huggingface.co/TencentARC/WorldCrafter-Fast)**, a distilled model for faster inference.
