@@ -11,7 +11,7 @@ import tempfile
 import yaml
 
 SOURCE_REVISION = "11712fe3a3f42cc448c10713a0b0ff79066e5935"
-MODEL_REVISION = "51320c3eb58a6313ccd6021a1da6d723d53e1a58"
+MODEL_REVISION = "d2ac12a654f8cafde4cb2e0ae7d5127ce2624939"
 WEIGHT_MANIFEST = Path(__file__).with_name("weights-manifest.json")
 # GeoCalib's pinhole checkpoint, staged by reactor.yaml's build.run at the path
 # torch.hub reads, so calibration never downloads it.

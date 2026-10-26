@@ -1,6 +1,6 @@
 {
   "repo_id": "TencentARC/WorldCrafter-Fast",
-  "revision": "51320c3eb58a6313ccd6021a1da6d723d53e1a58",
+  "revision": "d2ac12a654f8cafde4cb2e0ae7d5127ce2624939",
   "files": {
     "adapter_high_noise/dmd_timestep_contract.json": {
       "size": 123820,
@@ -41,6 +41,10 @@
     "manifest.json": {
       "size": 13014,
       "sha256": "894fec880301593ab7f9727647041e5fa07d401fddbd66979993fad131adb1da"
+    },
+    "model_index.json": {
+      "size": 1753,
+      "sha256": "dad03f7d77639589e7ece235717d1b824214064f742c5a82f019b2162d2d4030"
     },
     "repencoder/config.json": {
       "size": 628,

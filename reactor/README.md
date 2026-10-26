@@ -26,7 +26,7 @@ tracebacks, is forwarded to the Runtime's log under `worldcrafter.worker`.
 - Source: `TencentARC/WorldCrafter@11712fe3a3f42cc448c10713a0b0ff79066e5935`.
 - GeoCalib checkpoint: `geocalib-pinhole.tar` from the `cvg/GeoCalib` `v1.0`
   release, pinned by SHA-256.
-- Weights: `TencentARC/WorldCrafter-Fast@51320c3eb58a6313ccd6021a1da6d723d53e1a58`.
+- Weights: `TencentARC/WorldCrafter-Fast@d2ac12a654f8cafde4cb2e0ae7d5127ce2624939`.
 - The upstream `uvenv/uv.lock` defines the inference environment, including CUDA 12.8 PyTorch.
 - One generation occupies the configured GPU group; eight GPUs do not imply eight concurrent worlds.
 
@@ -47,9 +47,12 @@ stages the hash-checked GeoCalib checkpoint under `/opt/worldcrafter/torch`,
 where calibration reads it, so calibration downloads nothing at run time. The
 build does not download weights. Reactor resolves the pinned `hf://` URI in `reactor.yaml`,
 mounts the weights separately and exposes them through `get_weights_path()`.
-To reuse a complete local checkpoint:
+To download or update a local checkpoint to the same pinned revision, then reuse it:
 
 ```bash
+hf download TencentARC/WorldCrafter-Fast \
+  --revision d2ac12a654f8cafde4cb2e0ae7d5127ce2624939 \
+  --local-dir /absolute/path/WorldCrafter-Fast
 reactor run --gpus all --port 8090 --weights /absolute/path/WorldCrafter-Fast
 ```
 

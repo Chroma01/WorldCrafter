@@ -15,7 +15,7 @@ model:
       limit: 512Gi
 runtime:
   import: worldcrafter:WorldCrafter
-  weights_path: hf://TencentARC/WorldCrafter-Fast@51320c3eb58a6313ccd6021a1da6d723d53e1a58
+  weights_path: hf://TencentARC/WorldCrafter-Fast@d2ac12a654f8cafde4cb2e0ae7d5127ce2624939
   config: worldcrafter.yaml
   recording:
     enabled: true
