@@ -19,11 +19,12 @@
 </p>
 
 <p align="center">
-  <a href="https://arxiv.org/abs/2609.24984"><img src="https://img.shields.io/badge/arXiv-2609.24984-b31b1b.svg" alt="arXiv Paper"></a> &nbsp;
-  <a href="https://drexubery.github.io/WorldCrafter/"><img src="https://img.shields.io/badge/Project-Page-Green" alt="Project Page"></a> &nbsp;
-  <a href="https://www.youtube.com/watch?v=sg09ftQOl0E&amp;t=5s"><img src="https://img.shields.io/badge/Youtube-Video-b31b1b.svg" alt="YouTube Video"></a> &nbsp;
-  <a href="https://huggingface.co/spaces/Drexubery/worldcrafter-demo"><img src="https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Demo-blue" alt="Hugging Face Demo"></a> &nbsp;
-  <a href="https://huggingface.co/datasets/Drexubery/WorldCrafter"><img src="https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Dataset-yellow" alt="Hugging Face Dataset"></a>
+  <a href="https://arxiv.org/abs/2609.24984"><img src="https://img.shields.io/badge/arXiv-2609.24984-b31b1b?style=plastic&amp;logo=arxiv&amp;logoColor=white" alt="arXiv" height="25"></a> &nbsp;
+  <a href="https://huggingface.co/papers/2609.24984"><img src="https://img.shields.io/badge/%F0%9F%A4%97-Paper%20In%20HF-e34c4c?style=plastic" alt="Paper in HF" height="25"></a> &nbsp;
+  <a href="https://drexubery.github.io/WorldCrafter/"><img src="https://img.shields.io/badge/Project-Website-31a354?style=plastic" alt="Project Website" height="25"></a> &nbsp;
+  <a href="https://huggingface.co/spaces/Drexubery/worldcrafter-demo"><img src="https://img.shields.io/badge/%F0%9F%A4%97-Gradio-00add0?style=plastic" alt="Gradio Demo" height="25"></a> &nbsp;
+  <a href="https://huggingface.co/datasets/Drexubery/WorldCrafter"><img src="https://img.shields.io/badge/%F0%9F%A4%97-Dataset-007ec6?style=plastic" alt="WorldCrafter Dataset" height="25"></a> &nbsp;
+  <a href="#3-model-weights"><img src="https://img.shields.io/badge/%F0%9F%A4%97-Weights-8a2be2?style=plastic" alt="WorldCrafter Weights" height="25"></a>
 </p>
 
 🤗 If you find WorldCrafter useful, please consider giving this repo a ⭐. Your support helps us share and improve the project. Thank you!
