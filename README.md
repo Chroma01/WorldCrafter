@@ -24,13 +24,15 @@
   <a href="https://drexubery.github.io/WorldCrafter/"><img src="https://img.shields.io/badge/Project-Website-31a354?style=plastic" alt="Project Website" height="25"></a> &nbsp;
   <a href="https://huggingface.co/spaces/Drexubery/worldcrafter-demo"><img src="https://img.shields.io/badge/%F0%9F%A4%97-Gradio-00add0?style=plastic" alt="Gradio Demo" height="25"></a> &nbsp;
   <a href="https://huggingface.co/datasets/Drexubery/WorldCrafter"><img src="https://img.shields.io/badge/%F0%9F%A4%97-Dataset-007ec6?style=plastic" alt="WorldCrafter Dataset" height="25"></a> &nbsp;
-  <a href="#3-model-weights"><img src="https://img.shields.io/badge/%F0%9F%A4%97-Weights-8a2be2?style=plastic" alt="WorldCrafter Weights" height="25"></a>
+  <a href="#3-model-weights"><img src="https://img.shields.io/badge/%F0%9F%A4%97-Weights-8a2be2?style=plastic" alt="WorldCrafter Weights" height="25"></a> &nbsp;
+  <a href="https://huggingface.co/datasets/Drexubery/WorldCrafter/tree/main/benchmark"><img src="https://img.shields.io/badge/%F0%9F%A4%97-Benchmark-f28e2b?style=plastic" alt="WorldCrafter Benchmark" height="25"></a>
 </p>
 
 🤗 If you find WorldCrafter useful, please consider giving this repo a ⭐. Your support helps us share and improve the project. Thank you!
 
 ## 🔆 Introduction
 
+- **[2026-10-28]**: Release a [high-quality subset](https://huggingface.co/datasets/Drexubery/WorldCrafter/tree/main/benchmark) of WorldCrafter's test benchmark: 144 image–prompt pairs for first-person exploration and third-person subject following.
 - **[2026-10-22]**: Release [fine-tuning code](training/README.md) for **WorldCrafter-Base**.
 - **[2026-10-22]**: Release a [high-quality subset](https://huggingface.co/datasets/Drexubery/WorldCrafter) of WorldCrafter's open-domain training data: long videos with camera annotations and captions.
 - **[2026-10-22]**: Add WorldCrafter-Fast inference with [Reactor Runtime](reactor/README.md).
